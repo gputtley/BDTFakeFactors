@@ -1,0 +1,174 @@
+{
+  "add_sel" : {
+    "W_mmtt_2018" : {
+      "files" : [
+		    "WJetsToLNu-LO",
+		    "W1JetsToLNu-LO",
+		    "W2JetsToLNu-LO",
+		    "W3JetsToLNu-LO",
+		    "W4JetsToLNu-LO"
+      ],
+      "params_file" : "/vols/cms/ks1021/4tau/CMSSW_10_2_19/src/UserCode/ICHiggsTauTau/Analysis/4tau/scripts/params_UL_2018.json",
+      "sel" : "(SELECTION)",
+      "weight" : 59740.0,
+      "file_ext" : "_mmtt_2018.root",
+      "add_column_vals" : [0,0,0,1]
+    },
+    "DY_mmtt_2018" : {
+      "files" : [
+        "DYJetsToLL-LO", 
+        "DY1JetsToLL-LO", 
+        "DY2JetsToLL-LO", 
+        "DY3JetsToLL-LO", 
+        "DY4JetsToLL-LO", 
+        "DYJetsToLL_M-10to50-LO"
+      ],
+      "params_file" : "/vols/cms/ks1021/4tau/CMSSW_10_2_19/src/UserCode/ICHiggsTauTau/Analysis/4tau/scripts/params_UL_2018.json",
+      "sel" : "(SELECTION)",
+      "weight" : 59740.0,
+      "file_ext" : "_mmtt_2018.root",
+      "add_column_vals" : [0,0,0,1]
+    },
+    "ttbar_mmtt_2018" : {
+      "files" : [
+        "TTTo2L2Nu", 
+        "TTToHadronic", 
+        "TTToSemiLeptonic"
+      ],
+      "params_file" : "/vols/cms/ks1021/4tau/CMSSW_10_2_19/src/UserCode/ICHiggsTauTau/Analysis/4tau/scripts/params_UL_2018.json",
+      "sel" : "(SELECTION)",
+      "weight" : 59740.0,
+      "file_ext" : "_mmtt_2018.root",
+      "add_column_vals" : [0,0,0,1]
+    },
+    "W_mmtt_2017" : {
+      "files" : [
+        "WJetsToLNu-LO",
+        "W1JetsToLNu-LO",
+        "W2JetsToLNu-LO",
+        "W3JetsToLNu-LO",
+        "W4JetsToLNu-LO"
+      ],
+      "params_file" : "/vols/cms/ks1021/4tau/CMSSW_10_2_19/src/UserCode/ICHiggsTauTau/Analysis/4tau/scripts/params_UL_2017.json",
+      "sel" : "(SELECTION)",
+      "weight" : 41530.0,
+      "file_ext" : "_mmtt_2017.root",
+      "add_column_vals" : [0,0,1,0]
+    },
+    "DY_mmtt_2017" : {
+      "files" : [
+        "DYJetsToLL-LO",
+        "DY1JetsToLL-LO",
+        "DY2JetsToLL-LO",
+        "DY3JetsToLL-LO",
+        "DY4JetsToLL-LO",
+        "DYJetsToLL_M-10to50-LO"
+      ],
+      "params_file" : "/vols/cms/ks1021/4tau/CMSSW_10_2_19/src/UserCode/ICHiggsTauTau/Analysis/4tau/scripts/params_UL_2017.json",
+      "sel" : "(SELECTION)",
+      "weight" : 41530.0,
+      "file_ext" : "_mmtt_2017.root",
+      "add_column_vals" : [0,0,1,0]
+    },
+    "ttbar_mmtt_2017" : {
+      "files" : [
+        "TTTo2L2Nu",
+        "TTToHadronic",
+        "TTToSemiLeptonic"
+      ],
+      "params_file" : "/vols/cms/ks1021/4tau/CMSSW_10_2_19/src/UserCode/ICHiggsTauTau/Analysis/4tau/scripts/params_UL_2017.json",
+      "sel" : "(SELECTION)",
+      "weight" : 41530.0,
+      "file_ext" : "_mmtt_2017.root",
+      "add_column_vals" : [0,0,1,0]
+    },
+    "W_mmtt_2016_postVFP" : {
+      "files" : [
+        "WJetsToLNu-LO",
+        "W1JetsToLNu-LO",
+        "W2JetsToLNu-LO",
+        "W3JetsToLNu-LO",
+        "W4JetsToLNu-LO"
+      ],
+      "params_file" : "/vols/cms/ks1021/4tau/CMSSW_10_2_19/src/UserCode/ICHiggsTauTau/Analysis/4tau/scripts/params_UL_2016_postVFP.json",
+      "sel" : "(SELECTION)",
+      "weight" : 16810.0,
+      "file_ext" : "_mmtt_2016_postVFP.root",
+      "add_column_vals" : [0,1,0,0]
+    },
+    "DY_mmtt_2016_postVFP" : {
+      "files" : [
+        "DYJetsToLL-LO",
+        "DY1JetsToLL-LO",
+        "DY2JetsToLL-LO",
+        "DY3JetsToLL-LO",
+        "DY4JetsToLL-LO",
+        "DYJetsToLL_M-10to50-LO"
+      ],
+      "params_file" : "/vols/cms/ks1021/4tau/CMSSW_10_2_19/src/UserCode/ICHiggsTauTau/Analysis/4tau/scripts/params_UL_2016_postVFP.json",
+      "sel" : "(SELECTION)",
+      "weight" : 16810.0,
+      "file_ext" : "_mmtt_2016_postVFP.root",
+      "add_column_vals" : [0,1,0,0]
+    },
+    "ttbar_mmtt_2016_postVFP" : {
+      "files" : [
+        "TTTo2L2Nu",
+        "TTToHadronic",
+        "TTToSemiLeptonic"
+      ],
+      "params_file" : "/vols/cms/ks1021/4tau/CMSSW_10_2_19/src/UserCode/ICHiggsTauTau/Analysis/4tau/scripts/params_UL_2016_postVFP.json",
+      "sel" : "(SELECTION)",
+      "weight" : 16810.0,
+      "file_ext" : "_mmtt_2016_postVFP.root",
+      "add_column_vals" : [0,1,0,0]
+    },
+    "W_mmtt_2016_preVFP" : {
+      "files" : [
+        "WJetsToLNu-LO",
+        "W1JetsToLNu-LO",
+        "W2JetsToLNu-LO",
+        "W3JetsToLNu-LO",
+        "W4JetsToLNu-LO"
+      ],
+      "params_file" : "/vols/cms/ks1021/4tau/CMSSW_10_2_19/src/UserCode/ICHiggsTauTau/Analysis/4tau/scripts/params_UL_2016_preVFP.json",
+      "sel" : "(SELECTION)",
+      "weight" : 19520.0,
+      "file_ext" : "_mmtt_2016_preVFP.root",
+      "add_column_vals" : [1,0,0,0]
+    },
+    "DY_mmtt_2016_preVFP" : {
+      "files" : [
+        "DYJetsToLL-LO",
+        "DY1JetsToLL-LO",
+        "DY2JetsToLL-LO",
+        "DY3JetsToLL-LO",
+        "DY4JetsToLL-LO",
+        "DYJetsToLL_M-10to50-LO"
+      ],
+      "params_file" : "/vols/cms/ks1021/4tau/CMSSW_10_2_19/src/UserCode/ICHiggsTauTau/Analysis/4tau/scripts/params_UL_2016_preVFP.json",
+      "sel" : "(SELECTION)",
+      "weight" : 19520.0,
+      "file_ext" : "_mmtt_2016_preVFP.root",
+      "add_column_vals" : [1,0,0,0]
+    },
+    "ttbar_mmtt_2016_preVFP" : {
+      "files" : [
+        "TTTo2L2Nu",
+        "TTToHadronic",
+        "TTToSemiLeptonic"
+      ],
+      "params_file" : "/vols/cms/ks1021/4tau/CMSSW_10_2_19/src/UserCode/ICHiggsTauTau/Analysis/4tau/scripts/params_UL_2016_preVFP.json",
+      "sel" : "(SELECTION)",
+      "weight" : 19520.0,
+      "file_ext" : "_mmtt_2016_preVFP.root",
+      "add_column_vals" : [1,0,0,0]
+    }
+  },
+  "baseline_sel" : "(iso_1<0.15 && iso_2<0.15 && deepTauVsMu_vloose_3>0.5 && deepTauVsEle_vvloose_3>0.5 && deepTauVsMu_vloose_4>0.5 && deepTauVsEle_vvloose_4>0.5 && ((trg_singlemuon_1==1) || (trg_singlemuon_2==1) || (trg_doubletau_34==1)) && (((isTau==1) && ((trg_singlemuon_1==1) || (trg_singlemuon_2==1)))==0))",
+  "add_column_names" : ["yr_2016_preVFP","yr_2016_postVFP","yr_2017","yr_2018"],
+  "lumi" : 1,
+  "data" : 0,
+  "file_location" : "/vols/cms/gu18/Offline/output/4tau/combined_1709",
+  "weights" : "wt"
+}
