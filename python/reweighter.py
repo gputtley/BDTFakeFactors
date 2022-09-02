@@ -125,7 +125,7 @@ class reweighter(GBReweighter):
     self = best_model 
     
   def grid_search_batch(self, name, original_train, target_train, original_train_weight, target_train_weight, original_test, target_test, original_test_weight, target_test_weight, param_grid={}, scoring_variables=["pt_1"]):
-    from UserCode.sig_vs_bkg_discriminator.batch import CreateJob,CreateBatchJob,SubmitBatchJob
+    from UserCode.BDTFakeFactors.batch import CreateJob,CreateBatchJob,SubmitBatchJob
     if not os.path.isdir("scan_batch"): os.system("mkdir scan_batch")
     if not os.path.isdir("scan_batch/dataframes"): os.system("mkdir scan_batch/dataframes")
     if not os.path.isdir("scan_batch/models"): os.system("mkdir scan_batch/models")
@@ -155,7 +155,7 @@ class reweighter(GBReweighter):
                 "import pandas as pd",
                 "import os",
                 "import json",
-                "from UserCode.sig_vs_bkg_discriminator import reweighter",
+                "from UserCode.BDTFakeFactors import reweighter",
                 "original_train = pd.read_pickle('scan_batch/dataframes/{}_original_train_dataframe.pkl')".format(name),
                 "target_train = pd.read_pickle('scan_batch/dataframes/{}_target_train_dataframe.pkl')".format(name),
                 "original_train_weight = pd.read_pickle('scan_batch/dataframes/{}_original_train_weight_dataframe.pkl')".format(name),
@@ -172,7 +172,7 @@ class reweighter(GBReweighter):
                 "os.system('echo %(score)s &> scan_batch/scores/{}_{}.txt' % vars())".format(name,ind),
                 ]
       CreateJob("scan_batch/jobs/"+name+"_"+str(ind)+".py",p_cmds)
-      cmssw_base = os.getcwd().replace('src/UserCode/sig_vs_bkg_discriminator','')
+      cmssw_base = os.getcwd().replace('src/UserCode/BDTFakeFactors','')
       CreateBatchJob("scan_batch/jobs/"+name+"_"+str(ind)+".sh",cmssw_base,["python scan_batch/jobs/{}".format(name+"_"+str(ind)+".py")])
       SubmitBatchJob("scan_batch/jobs/"+name+"_"+str(ind)+".sh")
 

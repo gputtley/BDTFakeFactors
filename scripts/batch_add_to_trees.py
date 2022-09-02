@@ -1,6 +1,6 @@
 import ROOT
 import os
-from UserCode.sig_vs_bkg_discriminator.batch import CreateBatchJob,SubmitBatchJob
+from UserCode.BDTFakeFactors.batch import CreateBatchJob,SubmitBatchJob
 import argparse
 
 #python scripts/batch_add_to_trees.py --input_location=/vols/cms/gu18/Offline/output/MSSM/vlq_2018_bkg_data/ --output_location=/vols/cms/gu18/Offline/output/MSSM/vlq_2018_bdt

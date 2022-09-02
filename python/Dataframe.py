@@ -36,7 +36,7 @@ class Dataframe:
     self.file_sample = 100000
 
 
-  def __AllSplitStringsSteps__(self,selection):
+  def AllSplitStringsSteps(self,selection):
     #print "-----------------------------------------------------------------------------------------------"
     #print selection
     split_strings = self.__GetSplitStrings__(selection)
@@ -194,7 +194,7 @@ class Dataframe:
             self.root_selection[filename] = "(({})||({}))".format(self.root_selection[filename],selection)
         else:
           self.root_selection[filename] = selection
-        self.python_selection[filename] = "df.loc[({})]".format(''.join(self.__AllSplitStringsSteps__(self.root_selection[filename])))
+        self.python_selection[filename] = "df.loc[({})]".format(''.join(self.AllSplitStringsSteps(self.root_selection[filename])))
       else:
         print("ERROR: Filename not found. Selection not added.")
 
@@ -204,7 +204,7 @@ class Dataframe:
         self.root_selection[key] = "(({})&&({}))".format(val,selection)
       else:
         self.root_selection[key] = selection
-      self.python_selection[key] = "df.loc[({})]".format(''.join(self.__AllSplitStringsSteps__(self.root_selection[key])))
+      self.python_selection[key] = "df.loc[({})]".format(''.join(self.AllSplitStringsSteps(self.root_selection[key])))
 
 
   def AddColumns(self,variables):
@@ -282,13 +282,13 @@ class Dataframe:
 
       # Calculate modified variables
       for mod_var in self.modified_columns:
-        df.loc[:,mod_var] = eval(''.join(self.__AllSplitStringsSteps__(mod_var)))
+        df.loc[:,mod_var] = eval(''.join(self.AllSplitStringsSteps(mod_var)))
 
       # Scale relevant column
       for key, val in self.scale_column.items():
         if f in val.keys():
           if isinstance(val[f], str) or isinstance(val[f], unicode):
-            df.loc[:,key] =  eval("".join(self.__AllSplitStringsSteps__(val[f])))
+            df.loc[:,key] =  eval("".join(self.AllSplitStringsSteps(val[f])))
           else:
             df.loc[:,key] = float(val[f])*df.loc[:,key]
       
@@ -405,7 +405,7 @@ class Dataframe:
 
     # Calculate modified variables
     for mod_var in self.modified_columns:
-      self.dataframe.loc[:,mod_var] = eval(''.join(self.__AllSplitStringsSteps__(mod_var)).replace("df.","self.dataframe."))
+      self.dataframe.loc[:,mod_var] = eval(''.join(self.AllSplitStringsSteps(mod_var)).replace("df.","self.dataframe."))
 
     self.dataframe = self.dataframe.loc[:,columns]
 

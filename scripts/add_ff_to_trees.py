@@ -7,8 +7,8 @@ import argparse
 import numpy as np
 import xgboost as xgb
 import itertools
-from UserCode.sig_vs_bkg_discriminator.Dataframe import Dataframe
-from UserCode.sig_vs_bkg_discriminator.reweighter import reweighter
+from UserCode.BDTFakeFactors.Dataframe import Dataframe
+from UserCode.BDTFakeFactors.reweighter import reweighter
 
 # python scripts/add_ff_to_trees.py --input_location=/vols/cms/gu18/Offline/output/4tau/2018_1907 --output_location="./" --filename=TauB_mmtt_2018.root --channel=mmtt --year=2018 --splitting=100000 --offset=0
 
