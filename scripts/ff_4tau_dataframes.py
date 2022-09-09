@@ -17,21 +17,8 @@ parser.add_argument('--batch', help= 'Run job on the batch',  action='store_true
 parser.add_argument('--verbosity', help= 'Changes how much is printed', type=int, default=0)
 parser.add_argument('--only_mc', help= 'Only run MC dataframe',  action='store_true')
 parser.add_argument('--only_data', help= 'Only run MC dataframe',  action='store_true')
+parser.add_argument('--offset', help= 'Offset for batch jobs', type=int, default=None)
 args = parser.parse_args()
-
-if args.batch:
-  cmd = "python scripts/ff_4tau_dataframes.py"
-  for a in vars(args):
-    if "batch" in a: continue
-    if getattr(args, a) == True and type(getattr(args, a)) == bool:
-      cmd += " --{}".format(a)
-    elif getattr(args, a) != False and getattr(args, a) != None:
-      cmd += " --{}={}".format(a,getattr(args, a))
-  name = "ff_4tau_dataframe_job_{}_{}_{}".format(args.channel,args.pass_wp,args.fail_wp)
-  cmssw_base = os.getcwd().replace('src/UserCode/BDTFakeFactors','')
-  CreateBatchJob("jobs/"+name+".sh",cmssw_base,[cmd])
-  SubmitBatchJob("jobs/"+name+".sh")
-  exit()
 
 ############# Variables needed #################
 
@@ -74,10 +61,36 @@ for ind,i in enumerate(lst_n):
   for k in list(itertools.combinations(lst_n, ind+1)):
     total_keys.append(k)
 
+
+### setup batch jobs ##
+
+if args.batch:
+  base_cmd = "python scripts/ff_4tau_dataframes.py"
+  for a in vars(args):
+    if "batch" in a: continue
+    if getattr(args, a) == True and type(getattr(args, a)) == bool:
+      base_cmd += " --{}".format(a)
+    elif getattr(args, a) != False and getattr(args, a) != None:
+      base_cmd += " --{}={}".format(a,getattr(args, a))
+
+  batch_offset = 0
+  for t_ff in total_keys:
+    sel = MakeSelDict(t_ff,lst_n,SIDEBAND,SIGNAL,PASS,FAIL)
+    for rwt_key, rwt_val in sel.iteritems():
+      cmd = base_cmd + " --offset={}".format(batch_offset)
+      name = "ff_4tau_dataframe_job_{}_{}_{}_{}".format(args.channel,args.pass_wp,args.fail_wp,batch_offset)
+      cmssw_base = os.getcwd().replace('src/UserCode/BDTFakeFactors','')
+      CreateBatchJob("jobs/"+name+".sh",cmssw_base,[cmd])
+      SubmitBatchJob("jobs/"+name+".sh")
+      batch_offset += 1
+  exit()
+
+
 ### Begin load and training loop ###
 
 datasets_created = []
 
+offset = 0
 for t_ff in total_keys:
 
   print "<< Running for {} >>".format(t_ff)
@@ -95,7 +108,7 @@ for t_ff in total_keys:
 
     for pf_key, pf_val in rwt_val.items():
 
-      if not args.only_mc:
+      if (not args.only_mc) and (args.offset == offset or args.offset == None):
         dataset_name = "{}_{}".format(args.channel,pf_val.replace(" ","").replace("(","").replace(")","").replace("==","_eq_").replace("!=","_neq_").replace(">=","_geq_").replace("&&","_and_").replace("deepTauVsJets","dTvJ"))
         replace = {"SELECTION":pf_val}
 
@@ -113,7 +126,7 @@ for t_ff in total_keys:
         else:
            print "<< Identical {} {} dataframe already made >>".format(pf_key,rwt_key)
 
-      if not args.only_data:
+      if (not args.only_data) and (args.offset == offset or args.offset == None):
         for proc in ["DY","W","ttbar"]:
 
           dataset_name = "{}_{}_mc_{}".format(args.channel,pf_val.replace(" ","").replace("(","").replace(")","").replace("==","_eq_").replace("!=","_neq_").replace(">=","_geq_").replace("&&","_and_").replace("deepTauVsJets","dTvJ"),proc)
@@ -133,3 +146,5 @@ for t_ff in total_keys:
           else:
 
             print "<< Identical {} {} {} dataframe already made >>".format(proc,pf_key,rwt_key)
+
+      offset += 1

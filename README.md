@@ -6,6 +6,9 @@ This directory is to produce fake factors for hadronic taus using the BDT reweig
 
 All of the files and selection used in training are stored in the json_selection folder. Currently this is set up for the 4tau only.
 
+## Variables used
+.txt files of the variables used in the training are stored in the variables folder.
+
 ## Making Dataframes
 
 The dataframes are made from the json_selection files and stored in the dataframes folder by running the following command.
@@ -28,6 +31,7 @@ To find the best model, you will need to run hyperparameter scans on both the fa
 
 ```bash
 python scripts/ff_4tau_reweighting.py --channel=mmtt --scan_batch_ff --no_plots
-python scripts/ff_4tau_reweighting.py --channel=mmtt --collect_scan_batch_ff --scan_batch_correction --no_plots
+python scripts/ff_4tau_reweighting.py --channel=mmtt --collect_scan_batch_ff  --no_plots --batch
+python scripts/ff_4tau_reweighting.py --channel=mmtt --load_models_ff --scan_batch_correction --no_plots
 python scripts/ff_4tau_reweighting.py --channel=mmtt --load_models_ff --collect_scan_batch_correction --batch
 ```

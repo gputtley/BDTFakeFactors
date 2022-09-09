@@ -10,6 +10,7 @@ import pandas as pd
 import numpy as np
 import itertools
 import os
+import json
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--channel',help= 'Channel to train BDT for', default='mttt')
@@ -143,6 +144,8 @@ for ind, t_ff in enumerate(total_keys):
       store[t_ff_string].AddDataframes(ConvertMCDatasetName(sel["Signal"]["fail"],proc,args.channel),ConvertMCDatasetName(sel["Signal"]["pass"],proc,args.channel),"Correction")
 
   for rwt_key in ["Raw F_{F}","Alternative F_{F}","Correction"]:
+
+    if args.scan_batch_ff and "Correction" in rwt_key: continue
 
     rwt_key_name = rwt_key.lower().replace(" ","_").replace("_{","").replace("}","")
 
