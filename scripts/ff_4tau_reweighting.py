@@ -1,13 +1,7 @@
-# running sequence for full hyperparameter scans
-#python scripts/ff_4tau_dataframes.py --channel=mmtt --batch
-#python scripts/ff_4tau_reweighting.py --channel=mmtt --scan_batch_ff --no_plots
-#python scripts/ff_4tau_reweighting.py --channel=mmtt --collect_scan_batch_ff --scan_batch_correction --no_plots
-#python scripts/ff_4tau_reweighting.py --channel=mmtt --load_models_ff --collect_scan_batch_correction --batch
-
-
 from UserCode.BDTFakeFactors.Dataframe import Dataframe
 from UserCode.BDTFakeFactors.ff_ml import ff_ml
 from UserCode.BDTFakeFactors.functions import PrintDatasetSummary, MakeSelFromList, MakeSelDict
+from UserCode.BDTFakeFactors.batch import CreateBatchJob,SubmitBatchJob
 from UserCode.BDTFakeFactors import reweighter
 from collections import OrderedDict
 import argparse
@@ -39,12 +33,34 @@ parser.add_argument('--do_train_test_plots', help= 'Run split by year plotting',
 parser.add_argument('--only_mc', help= 'Only run MC closure',  action='store_true')
 args = parser.parse_args()
 
+if args.batch:
+  cmd = "python scripts/ff_4tau_reweighting.py"
+  for a in vars(args):
+    if "batch" in a: continue
+    if getattr(args, a) == True and type(getattr(args, a)) == bool:
+      cmd += " --{}".format(a)
+    elif getattr(args, a) != False and getattr(args, a) != None:
+      cmd += " --{}={}".format(a,getattr(args, a))
+  name = "ff_4tau_reweighting_job_{}_{}_{}".format(args.channel,args.pass_wp,args.fail_wp)
+  cmssw_base = os.getcwd().replace('src/UserCode/BDTFakeFactors','')
+  CreateBatchJob("jobs/"+name+".sh",cmssw_base,[cmd])
+  SubmitBatchJob("jobs/"+name+".sh")
+  exit()
+
+
 ############ Inputs ##########################
 
 years = ["2016_preVFP","2016_postVFP","2017","2018"]
 
+var_file = open("variables/ff_4tau_{}.txt".format(args.channel),"r")
+fitting_variables = var_file.read().split("\n")
+var_file.close()
+fitting_variables = [s.strip() for s in fitting_variables if s]
+
+scoring_variables = fitting_variables + ["yr_2016_preVFP","yr_2016_postVFP","yr_2017","yr_2018"]
+
 reweight_plot_variables = [
-#                           "pt_1"
+                           "pt_{}".format(args.channel.find("t")+1)
                            ]
 
 closure_plot_variables = [
@@ -182,34 +198,34 @@ for ind, t_ff in enumerate(total_keys):
 
       for var in reweight_plot_variables:
 
-        store[t_ff_string].PlotReweights(var, rwt_key, None, data_type=None, title_left=args.channel, title_right="all_years", plot_name="reweight_colz_plot_all_{}_{}_{}_all_years".format(t_ff_string,var,rwt_key_name))
+        store[t_ff_string].PlotReweights(var, rwt_key, None, data_type=None, title_left=args.channel, title_right="all_years", plot_name="reweight_colz_plot_all_{}_{}_{}_{}_all_years".format(t_ff_string,var,rwt_key_name,args.channel))
         if args.do_train_test_plots:
-          store[t_ff_string].PlotReweights(var, rwt_key, None, data_type="train", title_left=args.channel, title_right="all_years", plot_name="reweight_colz_plot_train_{}_{}_{}_all_years".format(t_ff_string,var,rwt_key_name))
-          store[t_ff_string].PlotReweights(var, rwt_key, None, data_type="test", title_left=args.channel, title_right="all_years", plot_name="reweight_colz_plot_test_{}_{}_{}_all_years".format(t_ff_string,var,rwt_key_name))
+          store[t_ff_string].PlotReweights(var, rwt_key, None, data_type="train", title_left=args.channel, title_right="all_years", plot_name="reweight_colz_plot_train_{}_{}_{}_{}_all_years".format(t_ff_string,var,rwt_key_name,args.channel))
+          store[t_ff_string].PlotReweights(var, rwt_key, None, data_type="test", title_left=args.channel, title_right="all_years", plot_name="reweight_colz_plot_test_{}_{}_{}_{}_all_years".format(t_ff_string,var,rwt_key_name,args.channel))
 
         if args.do_year_plots:
           for year in years:
-            store[t_ff_string].PlotReweights(var, rwt_key, "yr_{}==1".format(year), data_type=None, title_left=args.channel, title_right=year, plot_name="reweight_colz_plot_all_{}_{}_{}_{}".format(t_ff_string,var,rwt_key_name,year))
+            store[t_ff_string].PlotReweights(var, rwt_key, "yr_{}==1".format(year), data_type=None, title_left=args.channel, title_right=year, plot_name="reweight_colz_plot_all_{}_{}_{}_{}".format(t_ff_string,var,rwt_key_name,args.channel,year))
             if args.do_train_test_plots:
-              store[t_ff_string].PlotReweights(var, rwt_key, "yr_{}==1".format(year), data_type="train", title_left=args.channel, title_right=year, plot_name="reweight_colz_plot_train_{}_{}_{}_{}".format(t_ff_string,var,rwt_key_name,year))
-              store[t_ff_string].PlotReweights(var, rwt_key, "yr_{}==1".format(year), data_type="test", title_left=args.channel, title_right=year, plot_name="reweight_colz_plot_test_{}_{}_{}_{}".format(t_ff_string,var,rwt_key_name,year))
+              store[t_ff_string].PlotReweights(var, rwt_key, "yr_{}==1".format(year), data_type="train", title_left=args.channel, title_right=year, plot_name="reweight_colz_plot_train_{}_{}_{}_{}".format(t_ff_string,var,rwt_key_name,args.channel,year))
+              store[t_ff_string].PlotReweights(var, rwt_key, "yr_{}==1".format(year), data_type="test", title_left=args.channel, title_right=year, plot_name="reweight_colz_plot_test_{}_{}_{}_{}".format(t_ff_string,var,rwt_key_name,args.channel,year))
 
 
       # closure plots
 
       for var in closure_plot_variables:
 
-        store[t_ff_string].PlotClosure(var, rwt_key, None, data_type=None, title_left=args.channel, title_right="all_years", plot_name="closure_plot_all_{}_{}_{}_all_years".format(t_ff_string,var[0],rwt_key_name))
+        store[t_ff_string].PlotClosure(var, rwt_key, None, data_type=None, title_left=args.channel, title_right="all_years", plot_name="closure_plot_all_{}_{}_{}_{}_all_years".format(t_ff_string,var[0],rwt_key_name,args.channel))
         if args.do_train_test_plots:
-          store[t_ff_string].PlotClosure(var, rwt_key, None, data_type="train", title_left=args.channel, title_right="all_years", plot_name="closure_plot_train_{}_{}_{}_all_years".format(t_ff_string,var[0],rwt_key_name))
-          store[t_ff_string].PlotClosure(var, rwt_key, None, data_type="test", title_left=args.channel, title_right="all_years", plot_name="closure_plot_test_{}_{}_{}_all_years".format(t_ff_string,var[0],rwt_key_name))
+          store[t_ff_string].PlotClosure(var, rwt_key, None, data_type="train", title_left=args.channel, title_right="all_years", plot_name="closure_plot_train_{}_{}_{}_{}_all_years".format(t_ff_string,var[0],rwt_key_name,args.channel))
+          store[t_ff_string].PlotClosure(var, rwt_key, None, data_type="test", title_left=args.channel, title_right="all_years", plot_name="closure_plot_test_{}_{}_{}_all_{}_years".format(t_ff_string,var[0],rwt_key_name,args.channel))
 
         if args.do_year_plots:
           for year in years:
-            store[t_ff_string].PlotClosure(var, rwt_key, "yr_{}==1".format(year), data_type=None, title_left=args.channel, title_right=year, plot_name="closure_plot_all_{}_{}_{}_{}".format(t_ff_string,var[0],rwt_key_name,year))
+            store[t_ff_string].PlotClosure(var, rwt_key, "yr_{}==1".format(year), data_type=None, title_left=args.channel, title_right=year, plot_name="closure_plot_all_{}_{}_{}_{}_{}".format(t_ff_string,var[0],rwt_key_name,args.channel,year))
             if args.do_train_test_plots:
-              store[t_ff_string].PlotClosure(var, rwt_key, "yr_{}==1".format(year), data_type="train", title_left=args.channel, title_right=year, plot_name="closure_plot_train_{}_{}_{}_{}".format(t_ff_string,var[0],rwt_key_name,year))
-              store[t_ff_string].PlotClosure(var, rwt_key, "yr_{}==1".format(year), data_type="test", title_left=args.channel, title_right=year, plot_name="closure_plot_test_{}_{}_{}_{}".format(t_ff_string,var[0],rwt_key_name,year))
+              store[t_ff_string].PlotClosure(var, rwt_key, "yr_{}==1".format(year), data_type="train", title_left=args.channel, title_right=year, plot_name="closure_plot_train_{}_{}_{}_{}_{}".format(t_ff_string,var[0],rwt_key_name,args.channel,year))
+              store[t_ff_string].PlotClosure(var, rwt_key, "yr_{}==1".format(year), data_type="test", title_left=args.channel, title_right=year, plot_name="closure_plot_test_{}_{}_{}_{}_{}".format(t_ff_string,var[0],rwt_key_name,args.channel,year))
 
 
 # run full signal region mc closures
@@ -242,10 +258,10 @@ if not args.no_plots:
 
     for var in closure_plot_variables:
   
-      store[t_ff_string].PlotClosure(var, "Signal", None, data_type=None, title_left=args.channel, title_right="all_years", plot_name="closure_plot_all_{}_mc_{}_{}_all_years".format(proc,var[0],rwt_key_name), fillcolour=proc_colours[proc])
+      store[t_ff_string].PlotClosure(var, "Signal", None, data_type=None, title_left=args.channel, title_right="all_years", plot_name="closure_plot_all_{}_mc_{}_{}_{}_all_years".format(proc,var[0],rwt_key_name,args.channel), fillcolour=proc_colours[proc])
       if args.do_year_plots:
         for year in years:
-          store[t_ff_string].PlotClosure(var, "Signal", "yr_{}==1".format(year), data_type=None, title_left=args.channel, title_right=year, plot_name="closure_plot_all_{}_mc_{}_{}_{}".format(proc,var[0],rwt_key_name,year), fillcolour=proc_colours[proc])
+          store[t_ff_string].PlotClosure(var, "Signal", "yr_{}==1".format(year), data_type=None, title_left=args.channel, title_right=year, plot_name="closure_plot_all_{}_mc_{}_{}_{}_{}".format(proc,var[0],rwt_key_name,args.channel,year), fillcolour=proc_colours[proc])
 
     # reset dataframe list
     for ind, t_ff in enumerate(total_keys):

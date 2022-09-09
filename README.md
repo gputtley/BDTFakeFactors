@@ -19,7 +19,7 @@ python scripts/ff_4tau_dataframes.py --channel=mmtt --batch
 To run the reweights simply you can run the following command. This will produce reweight and closure plots and put these in the plots folder as well as saving the BDTs and hyperparameters in the relevant folder.
 
 ```bash
-python scripts/ff_4tau_reweighting.py --channel=mmtt 
+python scripts/ff_4tau_reweighting.py --channel=mmtt --batch
 ```
 
 ## Running reweights - hyperparameter scans
@@ -29,5 +29,5 @@ To find the best model, you will need to run hyperparameter scans on both the fa
 ```bash
 python scripts/ff_4tau_reweighting.py --channel=mmtt --scan_batch_ff --no_plots
 python scripts/ff_4tau_reweighting.py --channel=mmtt --collect_scan_batch_ff --scan_batch_correction --no_plots
-python scripts/ff_4tau_reweighting.py --channel=mmtt --load_models_ff --collect_scan_batch_correction
+python scripts/ff_4tau_reweighting.py --channel=mmtt --load_models_ff --collect_scan_batch_correction --batch
 ```

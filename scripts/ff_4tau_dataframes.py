@@ -27,7 +27,7 @@ if args.batch:
       cmd += " --{}".format(a)
     elif getattr(args, a) != False and getattr(args, a) != None:
       cmd += " --{}={}".format(a,getattr(args, a))
-  name = "ff_job_{}_{}_{}".format(args.channel,args.pass_wp,args.fail_wp)
+  name = "ff_4tau_dataframe_job_{}_{}_{}".format(args.channel,args.pass_wp,args.fail_wp)
   cmssw_base = os.getcwd().replace('src/UserCode/BDTFakeFactors','')
   CreateBatchJob("jobs/"+name+".sh",cmssw_base,[cmd])
   SubmitBatchJob("jobs/"+name+".sh")
@@ -37,27 +37,11 @@ if args.batch:
 
 years = ["2016_preVFP","2016_postVFP","2017","2018"]
 
-fitting_variables = [
-             "pt_1", "pt_2","pt_3","pt_4",
-             "fabs(dphi_12)","fabs(dphi_13)","fabs(dphi_14)","fabs(dphi_23)","fabs(dphi_24)","fabs(dphi_34)",
-             "fabs(dR_12)","fabs(dR_13)","fabs(dR_14)","fabs(dR_23)","fabs(dR_24)","fabs(dR_34)",
-             "mt_1","mt_2","mt_3","mt_4",
-             "mt_lep_12","mt_lep_13","mt_lep_14","mt_lep_23","mt_lep_24","mt_lep_34",
-             "mvis_12","mvis_13","mvis_14","mvis_23","mvis_24","mvis_34",
-             "pt_tt_12","pt_tt_13","pt_tt_14","pt_tt_23","pt_tt_24","pt_tt_34",
-             "n_jets","n_bjets",
-             ]
 
-for ind,p in enumerate(args.channel):
-  if p == "t":
-    fitting_variables.append("jet_pt_"+str(ind+1))
-    #fitting_variables.append("jet_probb_"+str(ind+1))
-    #fitting_variables.append("jet_probbb_"+str(ind+1))
-    #fitting_variables.append("jet_problepb_"+str(ind+1))
-    #fitting_variables.append("jet_probc_"+str(ind+1))
-    #fitting_variables.append("jet_probuds_"+str(ind+1))
-    #fitting_variables.append("jet_probg_"+str(ind+1))
-    fitting_variables.append("tau_decay_mode_"+str(ind+1))
+var_file = open("variables/ff_4tau_{}.txt".format(args.channel),"r")
+fitting_variables = var_file.read().split("\n")
+var_file.close()
+fitting_variables = [s.strip() for s in fitting_variables if s]
 
 ############# Get dataframes #################
 
