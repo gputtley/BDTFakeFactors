@@ -32,6 +32,7 @@ parser.add_argument('--no_plots', help= 'Do not run plotting',  action='store_tr
 parser.add_argument('--do_year_plots', help= 'Run split by year plotting',  action='store_true')
 parser.add_argument('--do_train_test_plots', help= 'Run split by year plotting',  action='store_true')
 parser.add_argument('--only_mc', help= 'Only run MC closure',  action='store_true')
+parser.add_argument('--no_correction', help= 'Do not run correction',  action='store_true')
 args = parser.parse_args()
 
 if args.batch:
@@ -66,15 +67,15 @@ reweight_plot_variables = [
 
 closure_plot_variables = [
                           ["mvis_12",(60,0,300)],
-#                          ["mvis_13",(60,0,300)],
-#                          ["mvis_14",(60,0,300)],
-#                          ["mvis_23",(60,0,300)],
-#                          ["mvis_24",(60,0,300)],
-#                          ["mvis_34",(60,0,300)],
-#                          ["pt_1",(50,0,250)],
-#                          ["pt_2",(50,0,250)],
-#                          ["pt_3",(50,0,250)],
-#                          ["pt_4",(50,0,250)],
+                          ["mvis_13",(60,0,300)],
+                          ["mvis_14",(60,0,300)],
+                          ["mvis_23",(60,0,300)],
+                          ["mvis_24",(60,0,300)],
+                          ["mvis_34",(60,0,300)],
+                          ["pt_1",(50,0,250)],
+                          ["pt_2",(50,0,250)],
+                          ["pt_3",(50,0,250)],
+                          ["pt_4",(50,0,250)],
                           ]
 
 param_grid = {
@@ -145,7 +146,7 @@ for ind, t_ff in enumerate(total_keys):
 
   for rwt_key in ["Raw F_{F}","Alternative F_{F}","Correction"]:
 
-    if args.scan_batch_ff and "Correction" in rwt_key: continue
+    if (args.scan_batch_ff and "Correction" in rwt_key) or (args.no_correction and "Correction" in rwt_key): continue
 
     rwt_key_name = rwt_key.lower().replace(" ","_").replace("_{","").replace("}","")
 

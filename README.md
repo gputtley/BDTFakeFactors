@@ -31,7 +31,7 @@ To find the best model, you will need to run hyperparameter scans on both the fa
 
 ```bash
 python scripts/ff_4tau_reweighting.py --channel=mmtt --scan_batch_ff --no_plots
-python scripts/ff_4tau_reweighting.py --channel=mmtt --collect_scan_batch_ff  --no_plots --batch
+python scripts/ff_4tau_reweighting.py --channel=mmtt --collect_scan_batch_ff  --no_correction --no_plots --batch
 python scripts/ff_4tau_reweighting.py --channel=mmtt --load_models_ff --scan_batch_correction --no_plots
 python scripts/ff_4tau_reweighting.py --channel=mmtt --load_models_ff --collect_scan_batch_correction --batch
 ```
