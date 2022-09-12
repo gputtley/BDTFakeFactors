@@ -190,8 +190,7 @@ class reweighter(GBReweighter):
           lowest_score = 1.0*l
         ind+=1 
 
-    #self = pkl.load(open('scan_batch/models/{}_{}.pkl'.format(name,lowest_score_ind), "rb"))
-    #print self
-
     with open('scan_batch/hyperparameters/{}_{}.json'.format(name,lowest_score_ind)) as json_file: params = json.load(json_file)
     self.set_params(copy.deepcopy(params))
+    print "Best parameter file {}".format(lowest_score_ind)
+    print "Best parameters {}".format(params)

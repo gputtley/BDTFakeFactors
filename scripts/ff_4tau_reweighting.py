@@ -37,7 +37,7 @@ args = parser.parse_args()
 if args.batch:
   cmd = "python scripts/ff_4tau_reweighting.py"
   for a in vars(args):
-    if "batch" in a: continue
+    if a == "batch": continue
     if getattr(args, a) == True and type(getattr(args, a)) == bool:
       cmd += " --{}".format(a)
     elif getattr(args, a) != False and getattr(args, a) != None:
