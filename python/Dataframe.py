@@ -33,7 +33,7 @@ class Dataframe:
     self.func_dict = {"fabs":"abs(x)","cos":"math.cos(x)","sin":"math.sin(x)", "cosh":"math.cosh(x)", "sinh":"math.sinh(x)", "ln":"math.log(x)", "boolean":"x==0"}
     self.weight_name = "wt"
     self.max_events = 100000
-    self.file_sample = 100000
+    self.file_sample = 1000000
 
 
   def AllSplitStringsSteps(self,selection):
@@ -225,7 +225,12 @@ class Dataframe:
         self.columns.append(var)
       else:
         self.modified_columns.append(var)
-        self.variables_for_modified += filter(None,re.split(delim, var))
+        poss_lst = filter(None,re.split(delim, var))
+        new_poss_lst = []
+        for i in poss_lst:
+          if not i.isdigit():
+            new_poss_lst.append(i) 
+        self.variables_for_modified += new_poss_lst
 
     for var in self.variables_for_modified:
       if var in self.func_dict.keys(): self.variables_for_modified.remove(var)
@@ -272,6 +277,7 @@ class Dataframe:
            df = eval(self.python_selection[f])
         temp_df = pd.concat([temp_df,df], ignore_index=True, sort=False)
 
+        print len(temp_df)
         if len(temp_df) > self.file_sample: 
           temp_df.loc[:,self.weight_name] *= (float(tree.numentries)/float(end))
           break
@@ -283,6 +289,7 @@ class Dataframe:
       # Calculate modified variables
       for mod_var in self.modified_columns:
         df.loc[:,mod_var] = eval(''.join(self.AllSplitStringsSteps(mod_var)))
+      df = 1.0*df
 
       # Scale relevant column
       for key, val in self.scale_column.items():

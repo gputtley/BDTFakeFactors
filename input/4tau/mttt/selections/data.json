@@ -1,0 +1,76 @@
+{
+  "add_sel" : {
+    "mttt_2018" : {
+      "files" : [
+        "SingleMuonA",
+        "SingleMuonB",
+        "SingleMuonC",
+        "SingleMuonD",
+        "TauA",
+        "TauB",
+        "TauC",
+        "TauD"
+      ],
+      "sel" : "(SELECTION)",
+      "weight" : 1.0,
+      "file_ext" : "_mttt_2018.root",
+      "add_column_vals" : [0,0,0,1]
+    },
+    "mttt_2017" : {
+      "files" : [
+        "SingleMuonB",
+        "SingleMuonC",
+        "SingleMuonD",
+        "SingleMuonE",
+        "SingleMuonF",
+        "TauB",
+        "TauC",
+        "TauD",
+        "TauE",
+        "TauF"
+      ],
+      "sel" : "(SELECTION)",
+      "weight" : 1.0,
+      "file_ext" : "_mttt_2017.root",
+      "add_column_vals" : [0,0,1,0]
+    },
+    "mttt_2016_postVFP" : {
+      "files" : [
+        "SingleMuonF",
+        "SingleMuonG",
+        "SingleMuonH",
+        "TauF",
+        "TauG",
+        "TauH"
+      ],
+      "sel" : "(SELECTION)",
+      "weight" : 1.0,
+      "file_ext" : "_mttt_2016_postVFP.root",
+      "add_column_vals" : [0,1,0,0]
+    },
+    "mttt_2016_preVFP" : {
+      "files" : [
+        "SingleMuonB",
+        "SingleMuonC",
+        "SingleMuonD",
+        "SingleMuonE",
+        "SingleMuonF",
+        "TauB",
+        "TauC",
+        "TauD",
+        "TauE",
+        "TauF"
+      ],
+      "sel" : "(SELECTION)",
+      "weight" : 1.0,
+      "file_ext" : "_mttt_2016_preVFP.root",
+      "add_column_vals" : [1,0,0,0]
+    }
+  },
+  "baseline_sel" : "(iso_1<0.15 && deepTauVsMu_vloose_2>0.5 && deepTauVsEle_vvloose_2>0.5 && deepTauVsMu_vloose_3>0.5 && deepTauVsEle_vvloose_3>0.5 && deepTauVsMu_vloose_4>0.5 && deepTauVsEle_vvloose_4>0.5 && ((trg_singlemuon_1==1) || (trg_doubletau_23==1) || (trg_doubletau_24==1) || (trg_doubletau_34==1)) && (((isTau==1) && ((trg_singlemuon_1==1)))==0))",
+  "add_column_names" : ["yr_2016_preVFP","yr_2016_postVFP","yr_2017","yr_2018"],
+  "lumi" : 1,
+  "data": 1,
+  "file_location" : "/vols/cms/gu18/Offline/output/4tau/combined_1709",
+  "weights" : "wt"
+}

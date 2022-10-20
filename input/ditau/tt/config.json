@@ -1,0 +1,7 @@
+{
+  "mc_procs" : ["W","ttbar"],
+  "multiple_ff" : true,
+  "years": ["2016_preVFP","2016_postVFP","2017","2018"],
+  "DR": "(os==0)",
+  "SR": "(os==1)"
+}

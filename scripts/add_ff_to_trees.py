@@ -38,10 +38,8 @@ for ind,i in enumerate(lst_n):
     for ks in k: str_k += str(ks)
     models_to_add[str_k] = {} 
     models_to_add[str_k]["wt_ff_None_vvvloose_raw_{}".format(str_k)] = "ff_{}_None_vvvloose_raw_ff_{}.pkl".format(args.channel,str_k)
-
-    if len(k) != len(lst_n):
-      models_to_add[str_k]["wt_ff_None_vvvloose_alt_{}".format(str_k)] = "ff_{}_None_vvvloose_alternative_ff_{}.pkl".format(args.channel,str_k)
-      models_to_add[str_k]["wt_ff_None_vvvloose_corr_{}".format(str_k)] = "ff_{}_None_vvvloose_correction_{}.pkl".format(args.channel,str_k)
+    models_to_add[str_k]["wt_ff_None_vvvloose_alt_{}".format(str_k)] = "ff_{}_None_vvvloose_alternative_ff_{}.pkl".format(args.channel,str_k)
+    models_to_add[str_k]["wt_ff_None_vvvloose_corr_{}".format(str_k)] = "ff_{}_None_vvvloose_correction_{}.pkl".format(args.channel,str_k)
 
 
 
@@ -68,8 +66,11 @@ for small_tree in tree.iterate(entrysteps=int(args.splitting)):
         new_df.dataframe.loc[:,"yr_2017"] = (args.year=="2017")
         new_df.dataframe.loc[:,"yr_2018"] = (args.year=="2018")
         new_df.dataframe = new_df.dataframe.reindex(list(xgb_model.column_names), axis=1)
- 
-        df.dataframe.loc[:,key] = xgb_model.predict_reweights(new_df.dataframe) 
+
+        if "corr" in key: 
+          df.dataframe.loc[:,key] = xgb_model.predict_reweights(new_df.dataframe) 
+        else:
+          df.dataframe.loc[:,key] = xgb_model.predict_reweights(new_df.dataframe,cap_at=1)
         del new_df
 
 

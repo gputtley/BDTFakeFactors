@@ -1,6 +1,6 @@
 from UserCode.BDTFakeFactors import reweighter
 from UserCode.BDTFakeFactors.Dataframe import Dataframe
-from UserCode.BDTFakeFactors.plotting import DrawClosurePlots, DrawColzReweightPlots
+from UserCode.BDTFakeFactors.plotting import DrawClosurePlots, DrawColzReweightPlots, DrawAverageReweightPlots
 import copy
 import pandas as pd
 import numpy as np
@@ -29,7 +29,7 @@ class ff_ml():
       self.model[name] = copy.deepcopy(model)
 
 
-  def GetDataframes(self,name,data_type=None,with_reweights=False,full=False):
+  def GetDataframes(self,name,data_type=None,with_reweights=False,full=False,variables="all"):
     if name not in ["Raw F_{F}","Alternative F_{F}","Correction","Signal"]:
       print "ERROR: Invalid name given. Please give Raw, Alternative, Correction or Signal"
     else:
@@ -47,6 +47,11 @@ class ff_ml():
         else:
           df2.dataframe  = pd.concat([df2.dataframe,pd.read_pickle(i2)], ignore_index=True, sort=False)
  
+    if variables != "all":
+      if "weights" not in variables: variables.append("weights")
+      df1.dataframe = df1.dataframe.loc[:,variables]
+      df2.dataframe = df2.dataframe.loc[:,variables]
+
     if data_type == "train":
       df1.TrainTestSplit()
       df2.TrainTestSplit()
@@ -62,13 +67,16 @@ class ff_ml():
       X_df2, wt_df2 = df2.SplitXWts()
 
     if name == "Correction":
-      wt_df1 = np.multiply(wt_df1,self.model["Alternative F_{F}"].predict_reweights(X_df1))
+      wt_df1 = np.multiply(wt_df1,self.model["Alternative F_{F}"].predict_reweights(X_df1.loc[:,list(self.model["Alternative F_{F}"].column_names)],cap_at=1))
 
     if with_reweights:
       if name == "Signal":
-        wt_df1 = np.multiply(np.multiply(wt_df1,self.model["Raw F_{F}"].predict_reweights(X_df1)),self.model["Correction"].predict_reweights(X_df1))
+        wt_df1 = np.multiply(np.multiply(wt_df1,self.model["Raw F_{F}"].predict_reweights(X_df1.loc[:,list(self.model["Raw F_{F}"].column_names)],cap_at=1)),self.model["Correction"].predict_reweights(X_df1))
+      elif name == "Correction":
+        wt_df1 = np.multiply(wt_df1,self.model[name].predict_reweights(X_df1.loc[:,list(self.model[name].column_names)]))
       else:
-        wt_df1 = np.multiply(wt_df1,self.model[name].predict_reweights(X_df1))
+        #wt_df1 = np.multiply(wt_df1,self.model[name].predict_reweights(X_df1.loc[:,list(self.model[name].column_names)],cap_at=1))
+        wt_df1 = np.multiply(wt_df1,self.model[name].predict_reweights(X_df1.loc[:,list(self.model[name].column_names)],cap_at=None))
 
     del df1
     del df2 
@@ -80,8 +88,7 @@ class ff_ml():
       df2 = pd.concat([X_df2,wt_df2],axis=1) 
       return df1, df2
 
-
-  def PlotReweights(self, var, name, sel, data_type=None, title_left="", title_right="", plot_name="reweight_colz_plot"):
+  def PlotAverageReweights(self, var, name, sel, data_type=None, title_left="", title_right="", plot_name="reweight_ave_plot",logy=False):
 
     df, _ = self.GetDataframes(name,data_type=data_type,full=True)
     df_func = Dataframe()
@@ -89,10 +96,34 @@ class ff_ml():
       df = eval("df.loc[({})]".format(''.join(df_func.AllSplitStringsSteps(sel))))
 
     X_df1, wt_df1, _, _ = self.GetDataframes(name,data_type=data_type)
-    reweights = pd.Series(self.model[name].predict_reweights(X_df1),name="reweights")
+    if name == "Correction":
+      reweights = pd.Series(self.model[name].predict_reweights(X_df1.loc[:,list(self.model[name].column_names)]),name="reweights")
+    else:
+      #reweights = pd.Series(self.model[name].predict_reweights(X_df1.loc[:,list(self.model[name].column_names)],cap_at=1),name="reweights")
+      reweights = pd.Series(self.model[name].predict_reweights(X_df1.loc[:,list(self.model[name].column_names)],cap_at=None),name="reweights")
+
+    var_df = X_df1.loc[:,var[0]]
+
+    df1 = pd.concat([wt_df1,var_df,reweights],axis=1)
+    DrawAverageReweightPlots(df1, var[0], var[1], name, plot_name=plot_name, title_left=title_left, title_right=title_right, logy=logy)
+
+
+  def PlotReweights(self, var, name, sel, data_type=None, title_left="", title_right="", plot_name="reweight_colz_plot",logy=False):
+
+    df, _ = self.GetDataframes(name,data_type=data_type,full=True)
+    df_func = Dataframe()
+    if sel != None:
+      df = eval("df.loc[({})]".format(''.join(df_func.AllSplitStringsSteps(sel))))
+
+    X_df1, wt_df1, _, _ = self.GetDataframes(name,data_type=data_type)
+    if name == "Correction":
+      reweights = pd.Series(self.model[name].predict_reweights(X_df1.loc[:,list(self.model[name].column_names)]),name="reweights")
+    else:
+      #reweights = pd.Series(self.model[name].predict_reweights(X_df1.loc[:,list(self.model[name].column_names)],cap_at=1),name="reweights")
+      reweights = pd.Series(self.model[name].predict_reweights(X_df1.loc[:,list(self.model[name].column_names)],cap_at=None),name="reweights")
 
     var_df = X_df1.loc[:,var]
-    DrawColzReweightPlots(var_df, reweights, wt_df1, var, name, plot_name=plot_name, title_left=title_left, title_right=title_right)
+    DrawColzReweightPlots(var_df, reweights, wt_df1, var, name, plot_name=plot_name, title_left=title_left, title_right=title_right, logy=logy)
 
   def PlotClosure(self, var, name, sel, data_type=None, title_left="", title_right="", plot_name="closure_colz_plot", fillcolour=38):
     df_func = Dataframe()
@@ -103,10 +134,12 @@ class ff_ml():
     if sel != None: df = eval("df.loc[({})]".format(''.join(df_func.AllSplitStringsSteps(sel))))
     df2 = copy.deepcopy(df)
 
+    df,_ = self.GetDataframes(name,data_type=data_type,full=True,with_reweights=False)
+
     del df
     cut_df1 = df1.loc[:,["weights",var[0]]]
     cut_df2 = df2.loc[:,["weights",var[0]]]
     del df1
     del df2
-    DrawClosurePlots(cut_df1, cut_df2, "Reweight x fail", "pass", var[0], var[1], plot_name=plot_name, title_left=title_left, title_right=title_right, fillcolour=fillcolour)
+    DrawClosurePlots(cut_df1, cut_df2, "Reweight x fail", "pass", var[0], var[1], plot_name=plot_name, title_left=title_left, title_right=title_right, fillcolour=fillcolour,df1_norm=self.model[name].initial_normalization)
 

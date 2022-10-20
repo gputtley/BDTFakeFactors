@@ -341,16 +341,25 @@ def DrawTitle(pad, text, align, scale=1):
     pad_backup.cd()
 
 
-def PlotDistributionComparison(x_label,y_label,dist_0,dist_0_name,dist_1,dist_1_name,output_folder,save_name,logx=False,title_left="",title_right="",fillcolour=38):
+def PlotDistributionComparison(x_label,y_label,dist_0,dist_0_name,dist_1,dist_1_name,output_folder,save_name,logx=False,title_left="",title_right="",fillcolour=38, extra_dist=None):
   ROOT.gROOT.SetBatch(ROOT.kTRUE)
   dist_0_divide = dist_0.Clone()
   for i in range(0,dist_0_divide.GetNbinsX()+2): dist_0_divide.SetBinError(i,0)
+
+  if extra_dist != None:
+    dist_0_alt = extra_dist.Clone()
+    dist_0_alt_divide = dist_0_alt.Clone()
+    for i in range(0,dist_0_alt_divide.GetNbinsX()+2): dist_0_alt_divide.SetBinError(i,0)
 
   dist_1_ratio = dist_1.Clone()
   dist_1_ratio.Divide(dist_0_divide)
 
   dist_0_ratio = dist_0.Clone()
   dist_0_ratio.Divide(dist_0_divide)
+
+  if extra_dist != None:
+    dist_1_alt_ratio = dist_1.Clone()
+    dist_1_alt_ratio.Divide(dist_0_alt_divide)
 
   c = ROOT.TCanvas('c','c',600,600)
 
@@ -383,11 +392,18 @@ def PlotDistributionComparison(x_label,y_label,dist_0,dist_0_name,dist_1,dist_1_
   dist_1.SetLineColor(1)
   dist_1.SetMarkerStyle(19)
 
+  if extra_dist != None:
+    dist_0_alt.Draw("SAME")
+    #dist_0_alt.SetMarkerColor(2)
+    dist_0_alt.SetLineColor(2)
+    dist_0_alt.SetLineWidth(2)
+    #dist_0_alt.SetMarkerStyle(19)
 
   l = ROOT.TLegend(0.6,0.65,0.88,0.85);
   l.SetBorderSize(0)
   l.AddEntry(dist_0,dist_0_name,"f")
   l.AddEntry(dist_1,dist_1_name,"lep")
+  l.AddEntry(dist_0_alt,"norm x fail","lep")
   l.Draw()
 
   c.cd()
@@ -403,7 +419,8 @@ def PlotDistributionComparison(x_label,y_label,dist_0,dist_0_name,dist_1,dist_1_
   dist_0_ratio.SetMarkerSize(0)
   dist_0_ratio.SetFillColorAlpha(12,0.5)
   dist_0_ratio.SetLineWidth(0)
-  dist_0_ratio.SetAxisRange(0.8,1.2,'Y')
+  dist_0_ratio.SetAxisRange(0.5,1.5,'Y')
+  #dist_0_ratio.SetAxisRange(0.8,1.2,'Y')
   dist_0_ratio.GetYaxis().SetNdivisions(4)
   dist_0_ratio.SetStats(0)
   dist_0_ratio.GetXaxis().SetLabelSize(0.1)
@@ -422,6 +439,10 @@ def PlotDistributionComparison(x_label,y_label,dist_0,dist_0_name,dist_1,dist_1_
   dist_1_ratio.SetMarkerColor(1)
   dist_1_ratio.SetLineColor(1)
   dist_1_ratio.SetMarkerStyle(19)
+  if extra_dist != None:
+    dist_1_alt_ratio.SetLineColor(2)
+    dist_1_alt_ratio.SetMarkerColor(2)  
+    #dist_1_alt_ratio.SetMarkerStyle(19)
 
   ratio_line_up = ROOT.TLine(dist_0.GetBinLowEdge(1),1.5,dist_0.GetBinLowEdge(dist_0.GetNbinsX()+1),1.5)
   ratio_line_down = ROOT.TLine(dist_0.GetBinLowEdge(1),0.5,dist_0.GetBinLowEdge(dist_0.GetNbinsX()+1),0.5)
@@ -430,6 +451,7 @@ def PlotDistributionComparison(x_label,y_label,dist_0,dist_0_name,dist_1,dist_1_
   ratio_line_down.SetLineStyle(3)
   
   dist_0_ratio.Draw("e2")
+  if extra_dist != None: dist_1_alt_ratio.Draw("e same")
   ratio_line.Draw("l same")
   ratio_line_up.Draw("l same")
   ratio_line_down.Draw("l same")
@@ -451,6 +473,9 @@ def ReplaceName(name):
     "emtt":"e#mu#tau#tau",
     "mmtt":" #mu#mu#tau#tau",
     "eett":"ee#tau#tau",
+    "tt":"#tau#tau",
+    "mt":"#mu#tau",
+    "et":"e#tau",
     "2016_preVFP":"2016-preVFP: 19.5 fb^{-1} (13 TeV)",
     "2016_postVFP":"2016-postVFP: 16.8 fb^{-1} (13 TeV)",
     "2017":"2017: 41.5 fb^{-1} (13 TeV)",
@@ -626,22 +651,27 @@ def DrawColzReweightPlots(df_x, df_y, wt, x_label, y_label, plot_name="reweight_
   c.SaveAs(name)
   c.Close()
 
-def DrawClosurePlots(df1, df2, df1_name, df2_name, var_name, var_binning, plot_name="closure_plot", title_left="", title_right="", fillcolour=38):
+def DrawClosurePlots(df1, df2, df1_name, df2_name, var_name, var_binning, plot_name="closure_plot", title_left="", title_right="", fillcolour=38, df1_norm=None):
   if isinstance(var_binning,tuple):
-    bins = array('f', map(float,[(float(var_binning[2]-var_binning[1])/var_binning[0])*i for i in range(0,var_binning[0])]))
+    bins = array('f', map(float,[(float(var_binning[2]-var_binning[1])/var_binning[0])*i + float(var_binning[1]) for i in range(0,var_binning[0])]))
   elif isinstance(var_binning,list):
     bins = array('f', map(float,var_binning))
   hout = ROOT.TH1D('hout','',len(bins)-1, bins)
   for i in range(0,hout.GetNbinsX()+2): hout.SetBinError(i,0)
-
   hist1 = hout.Clone()
   hist2 = hout.Clone()
+  if df1_norm != None: 
+    hist3 = hout.Clone()
+  else:
+    hist3 = None
 
   # Fill not the right thing to do!
   for index, row in df1.iterrows():
     hist1.Fill(row[var_name], row["weights"])
+    if df1_norm != None: hist3.Fill(row[var_name],df1_norm)
   for index, row in df2.iterrows():
     hist2.Fill(row[var_name], row["weights"])
+
 
   # rebin to find good binning
   #if hist1.GetEntries() < hist2.GetEntries():
@@ -651,14 +681,70 @@ def DrawClosurePlots(df1, df2, df1_name, df2_name, var_name, var_binning, plot_n
 
   #hist1 = RebinHist(hist1,binning)
   #hist2 = RebinHist(hist2,binning)
-  binning = FindRebinning(hist1,BinThreshold=100,BinUncertFraction=0.5)
-  hist2 = RebinHist(hist2,binning)
-  binning = FindRebinning(hist2,BinThreshold=100,BinUncertFraction=0.5)
-  hist1 = RebinHist(hist1,binning)
-  hist2 = RebinHist(hist2,binning)
+
+  if df1.loc[:,var_name].nunique() > 20:
+    binning = FindRebinning(hist1,BinThreshold=100,BinUncertFraction=0.2)
+    hist2 = RebinHist(hist2,binning)
+    binning = FindRebinning(hist2,BinThreshold=100,BinUncertFraction=0.2)
+    hist1 = RebinHist(hist1,binning)
+    hist2 = RebinHist(hist2,binning)
+    if df1_norm != None: hist3 = RebinHist(hist3,binning)
+
+  hist1.Chi2Test(hist2, "p")
 
   hist1.Scale(1.0,"width")
   hist2.Scale(1.0,"width")
+  if df1_norm != None: hist3.Scale(1.0,"width")
 
-  PlotDistributionComparison(ReplaceName(var_name), ReplaceName("dN/d{}".format(var_name)),hist1, df1_name, hist2, df2_name, "plots", plot_name, title_left=ReplaceName(title_left), title_right=ReplaceName(title_right),fillcolour=fillcolour)
+  PlotDistributionComparison(ReplaceName(var_name), ReplaceName("dN/d{}".format(var_name)),hist1, df1_name, hist2, df2_name, "plots", plot_name, title_left=ReplaceName(title_left), title_right=ReplaceName(title_right),fillcolour=fillcolour,extra_dist=hist3)
 
+def DrawAverageReweightPlots(df1, var_name, var_binning, name, plot_name="reweight_ave_plot", title_left="", title_right="",logx=False,logy=False):
+  ROOT.gROOT.SetBatch(ROOT.kTRUE)
+  c = ROOT.TCanvas('c','c',600,600)
+  if isinstance(var_binning,tuple):
+    bins = array('f', map(float,[(float(var_binning[2]-var_binning[1])/var_binning[0])*i + float(var_binning[1]) for i in range(0,var_binning[0])]))
+  elif isinstance(var_binning,list):
+    bins = array('f', map(float,var_binning))
+  hout = ROOT.TH1D('hout','',len(bins)-1, bins)
+  for i in range(0,hout.GetNbinsX()+2): hout.SetBinError(i,0)
+  hist1 = hout.Clone()
+  hist2 = hout.Clone() 
+
+  for index, row in df1.iterrows():
+    hist1.Fill(row[var_name], row["weights"]*row["reweights"])
+    hist2.Fill(row[var_name], row["weights"])
+
+  if df1.loc[:,var_name].nunique() > 20:
+    binning = FindRebinning(hist1,BinThreshold=100,BinUncertFraction=0.2)
+    hist2 = RebinHist(hist2,binning)
+    binning = FindRebinning(hist2,BinThreshold=100,BinUncertFraction=0.2)
+    hist1 = RebinHist(hist1,binning)
+    hist2 = RebinHist(hist2,binning)
+
+  for i in range(0,hist2.GetNbinsX()+2): hist2.SetBinError(i,0)
+  hist1.Divide(hist2)
+
+  pad = ROOT.TPad("pad","pad",0,0,1,1)
+  pad.Draw()
+  pad.cd()
+  pad.SetBottomMargin(0.12)
+  pad.SetLeftMargin(0.14)
+  pad.SetRightMargin(0.2)
+  if logy: pad.SetLogy()
+
+  hist1.SetStats(0)
+  hist1.Draw("E1")
+  hist1.GetXaxis().SetTitle(ReplaceName(var_name))
+  hist1.GetXaxis().SetTitleSize(0.04)
+  hist1.GetXaxis().SetTitleOffset(1.3)
+  hist1.GetYaxis().SetTitle("Reweight")
+  hist1.GetYaxis().SetTitleSize(0.04)
+  hist1.SetMarkerStyle(19)  
+
+  DrawTitle(pad, ReplaceName(title_left), 1, scale=0.7)
+  DrawTitle(pad, ReplaceName(title_right), 3, scale=0.7)
+
+  c.Update()
+  name = 'plots/%(plot_name)s.pdf' % vars()
+  c.SaveAs(name)
+  c.Close()

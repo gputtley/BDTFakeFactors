@@ -54,12 +54,21 @@ if args.batch:
 
 years = ["2016_preVFP","2016_postVFP","2017","2018"]
 
-var_file = open("variables/ff_4tau_{}.txt".format(args.channel),"r")
-fitting_variables = var_file.read().split("\n")
-var_file.close()
-fitting_variables = [s.strip() for s in fitting_variables if s]
+var_fitting_file = open("variables/ff_4tau_{}_fitting.txt".format(args.channel),"r")
+fitting_variables = var_fitting_file.read().split("\n")
+var_fitting_file.close()
 
-scoring_variables = fitting_variables + ["yr_2016_preVFP","yr_2016_postVFP","yr_2017","yr_2018"]
+var_other_file = open("variables/ff_4tau_{}_other.txt".format(args.channel),"r")
+other_variables = var_other_file.read().split("\n")
+var_other_file.close()
+
+
+fitting_variables = [s.strip() for s in fitting_variables if s]
+other_variables = [s.strip() for s in other_variables if s]
+
+fitting_variables = fitting_variables + ["yr_2016_preVFP","yr_2016_postVFP","yr_2017","yr_2018"]
+#scoring_variables = other_variables + ["yr_2016_preVFP","yr_2016_postVFP","yr_2017","yr_2018"]
+scoring_variables = fitting_variables
 
 reweight_plot_variables = [
                            "pt_{}".format(args.channel.find("t")+1)
@@ -67,6 +76,7 @@ reweight_plot_variables = [
 
 closure_plot_variables = [
                           ["mvis_12",(60,0,300)],
+                          ["mvis_12",(80,80,120)],
                           ["mvis_13",(60,0,300)],
                           ["mvis_14",(60,0,300)],
                           ["mvis_23",(60,0,300)],
@@ -79,10 +89,10 @@ closure_plot_variables = [
                           ]
 
 param_grid = {
-              "n_estimators":[80,100,200,300],
-              "max_depth":[2,3,4],
+              "n_estimators":[50,100,200,300],
+              "max_depth":[2,3],
               "learning_rate":[0.06,0.08,0.1],
-              "min_samples_leaf": [200,400,600,800],
+              "min_samples_leaf": [400,600,800],
               }
 
 ############ Functions ##########################
@@ -146,12 +156,17 @@ for ind, t_ff in enumerate(total_keys):
 
   for rwt_key in ["Raw F_{F}","Alternative F_{F}","Correction"]:
 
+    if "Correction" in rwt_key:
+      cap_at = None
+    else:
+      cap_at = 1
+
     if (args.scan_batch_ff and "Correction" in rwt_key) or (args.no_correction and "Correction" in rwt_key): continue
 
     rwt_key_name = rwt_key.lower().replace(" ","_").replace("_{","").replace("}","")
 
-    train_fail, wt_train_fail, train_pass, wt_train_pass = store[t_ff_string].GetDataframes(rwt_key,data_type="train")
-    test_fail, wt_test_fail, test_pass, wt_test_pass = store[t_ff_string].GetDataframes(rwt_key,data_type="test")
+    train_fail, wt_train_fail, train_pass, wt_train_pass = store[t_ff_string].GetDataframes(rwt_key,data_type="train",variables=fitting_variables)
+    test_fail, wt_test_fail, test_pass, wt_test_pass = store[t_ff_string].GetDataframes(rwt_key,data_type="test",variables=fitting_variables)
 
     model_name = "{}_{}_{}_{}_{}".format(args.channel,str(args.fail_wp),args.pass_wp,rwt_key.lower().replace(" ","_").replace("_{","").replace("}",""),str(t_ff).replace("(","").replace(")","").replace(",","").replace(" ",""))
 
@@ -163,25 +178,23 @@ for ind, t_ff in enumerate(total_keys):
 
       if (args.scan_ff and "F_{F}" in rwt_key) or (args.scan_correction and "Correction" in rwt_key):
 
-        rwter.grid_search(train_fail, train_pass, wt_train_fail ,wt_train_pass, test_fail, test_pass, wt_test_fail ,wt_test_pass, param_grid=param_grid, scoring_variables=scoring_variables)
+        rwter.grid_search(train_fail, train_pass, wt_train_fail ,wt_train_pass, test_fail, test_pass, wt_test_fail ,wt_test_pass, param_grid=param_grid, scoring_variables=scoring_variables, cap_at=cap_at)
         with open('hyperparameters/ff_hp_{}.json'.format(model_name), 'w') as outfile: json.dump(rwter.dump_hyperparameters(), outfile)
 
       elif (args.scan_batch_ff and "F_{F}" in rwt_key) or (args.scan_batch_correction and "Correction" in rwt_key):
 
-        rwter.grid_search_batch(model_name,train_fail, train_pass, wt_train_fail ,wt_train_pass, test_fail, test_pass, wt_test_fail ,wt_test_pass, param_grid=param_grid, scoring_variables=scoring_variables)
+        rwter.grid_search_batch(model_name,train_fail, train_pass, wt_train_fail ,wt_train_pass, test_fail, test_pass, wt_test_fail ,wt_test_pass, param_grid=param_grid, scoring_variables=scoring_variables, cap_at=cap_at)
 
       elif (args.collect_scan_batch_ff and "F_{F}" in rwt_key) or (args.collect_scan_batch_correction and "Correction" in rwt_key):
 
-        rwter.collect_grid_search_batch(model_name)
+        rwter = rwter.collect_grid_search_batch(model_name)
         with open('hyperparameters/ff_hp_{}.json'.format(model_name), 'w') as outfile: json.dump(rwter.dump_hyperparameters(), outfile)
-        rwter.norm_and_fit(train_fail, train_pass, wt_train_fail ,wt_train_pass)
-
       else:
 
         if (args.load_hyperparameters_ff and "F_{F}" in rwt_key) or (args.load_hyperparameters_correction and "Correction" in rwt_key):
           with open('hyperparameters/ff_hp_{}.json'.format(model_name)) as json_file: params = json.load(json_file)
           rwter.set_params(params)
-        rwter.norm_and_fit(train_fail, train_pass, wt_train_fail ,wt_train_pass)
+        rwter.norm_and_fit(train_fail, train_pass, wt_train_fail ,wt_train_pass,cap_at=cap_at)
 
       if not (args.scan_batch_ff or args.scan_batch_correction): pkl.dump(rwter,open("BDTs/ff_{}.pkl".format(model_name), "wb"))
 
@@ -200,19 +213,21 @@ for ind, t_ff in enumerate(total_keys):
 
       # reweight plots
 
+      logy =  (not "Correction" in rwt_key)
+
       for var in reweight_plot_variables:
 
-        store[t_ff_string].PlotReweights(var, rwt_key, None, data_type=None, title_left=args.channel, title_right="all_years", plot_name="reweight_colz_plot_all_{}_{}_{}_{}_all_years".format(t_ff_string,var,rwt_key_name,args.channel))
+        store[t_ff_string].PlotReweights(var, rwt_key, None, data_type=None, title_left=args.channel, title_right="all_years", plot_name="reweight_colz_plot_all_{}_{}_{}_{}_all_years".format(t_ff_string,var,rwt_key_name,args.channel), logy=logy)
         if args.do_train_test_plots:
-          store[t_ff_string].PlotReweights(var, rwt_key, None, data_type="train", title_left=args.channel, title_right="all_years", plot_name="reweight_colz_plot_train_{}_{}_{}_{}_all_years".format(t_ff_string,var,rwt_key_name,args.channel))
-          store[t_ff_string].PlotReweights(var, rwt_key, None, data_type="test", title_left=args.channel, title_right="all_years", plot_name="reweight_colz_plot_test_{}_{}_{}_{}_all_years".format(t_ff_string,var,rwt_key_name,args.channel))
+          store[t_ff_string].PlotReweights(var, rwt_key, None, data_type="train", title_left=args.channel, title_right="all_years", plot_name="reweight_colz_plot_train_{}_{}_{}_{}_all_years".format(t_ff_string,var,rwt_key_name,args.channel), logy=logy)
+          store[t_ff_string].PlotReweights(var, rwt_key, None, data_type="test", title_left=args.channel, title_right="all_years", plot_name="reweight_colz_plot_test_{}_{}_{}_{}_all_years".format(t_ff_string,var,rwt_key_name,args.channel), logy=logy)
 
         if args.do_year_plots:
           for year in years:
-            store[t_ff_string].PlotReweights(var, rwt_key, "yr_{}==1".format(year), data_type=None, title_left=args.channel, title_right=year, plot_name="reweight_colz_plot_all_{}_{}_{}_{}".format(t_ff_string,var,rwt_key_name,args.channel,year))
+            store[t_ff_string].PlotReweights(var, rwt_key, "yr_{}==1".format(year), data_type=None, title_left=args.channel, title_right=year, plot_name="reweight_colz_plot_all_{}_{}_{}_{}_{}".format(t_ff_string,var,rwt_key_name,args.channel,year), logy=logy)
             if args.do_train_test_plots:
-              store[t_ff_string].PlotReweights(var, rwt_key, "yr_{}==1".format(year), data_type="train", title_left=args.channel, title_right=year, plot_name="reweight_colz_plot_train_{}_{}_{}_{}".format(t_ff_string,var,rwt_key_name,args.channel,year))
-              store[t_ff_string].PlotReweights(var, rwt_key, "yr_{}==1".format(year), data_type="test", title_left=args.channel, title_right=year, plot_name="reweight_colz_plot_test_{}_{}_{}_{}".format(t_ff_string,var,rwt_key_name,args.channel,year))
+              store[t_ff_string].PlotReweights(var, rwt_key, "yr_{}==1".format(year), data_type="train", title_left=args.channel, title_right=year, plot_name="reweight_colz_plot_train_{}_{}_{}_{}_{}".format(t_ff_string,var,rwt_key_name,args.channel,year), logy=logy)
+              store[t_ff_string].PlotReweights(var, rwt_key, "yr_{}==1".format(year), data_type="test", title_left=args.channel, title_right=year, plot_name="reweight_colz_plot_test_{}_{}_{}_{}_{}".format(t_ff_string,var,rwt_key_name,args.channel,year), logy=logy)
 
 
       # closure plots

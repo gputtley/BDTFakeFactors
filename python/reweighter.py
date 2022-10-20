@@ -24,24 +24,29 @@ class reweighter(GBReweighter):
     self.gb_args = gb_args
     self.loss_regularization = loss_regularization
     self.normalization = 1.0
+    self.initial_normalization = 1.0
     self.column_names = []
     self.KS_value = None
 
-  def norm_and_fit(self, original, target, original_weight, target_weight):
+  def norm_and_fit(self, original, target, original_weight, target_weight, cap_at=None):
     self.column_names = original.keys()
     self.normalization = target_weight.sum()/original_weight.sum()
-    original_weight = self.normalization*original_weight
-    self.fit(original, target, original_weight=original_weight, target_weight=target_weight)
-    total_original_weights = np.multiply(self.predict_reweights(original,add_norm=False),original_weight)
-    self.normalization = self.normalization*target_weight.sum()/total_original_weights.sum() 
-    
+    self.initial_normalization = target_weight.sum()/original_weight.sum()
+    self.fit(original, target, original_weight=self.normalization*original_weight, target_weight=target_weight)
+    # renormalise after fit
+    for i in range(0,10):
+      total_original_weights = np.multiply(self.predict_reweights(original,add_norm=True,cap_at=cap_at),original_weight)
+      self.normalization = self.normalization*target_weight.sum()/total_original_weights.sum()
 
-  def predict_reweights(self, original, add_norm=True):
-    wts = self.predict_weights(original) 
+  def predict_reweights(self, original, add_norm=True,cap_at=None):
+    wts = self.predict_weights(original)
     if add_norm:
-      return self.normalization*wts
+      new_wts = self.normalization*wts
     else:
-      return wts
+      new_wts = wts
+    if cap_at != None:
+      new_wts = np.clip(new_wts,-cap_at,cap_at)
+    return new_wts
 
   def dump_hyperparameters(self):
     if self.gb_args != None:
@@ -102,15 +107,15 @@ class reweighter(GBReweighter):
       del val["loss_regularization"]
     self.gb_args = copy.deepcopy(val)
 
-  def grid_search(self, original_train, target_train, original_train_weight, target_train_weight, original_test, target_test, original_test_weight, target_test_weight, param_grid={}, scoring_variables=["pt_1"]):
+  def grid_search(self, original_train, target_train, original_train_weight, target_train_weight, original_test, target_test, original_test_weight, target_test_weight, param_grid={}, scoring_variables=["pt_1"],cap_at=None):
     keys, values = zip(*param_grid.items())
     permutations_dicts = [dict(zip(keys, v)) for v in itertools.product(*values)]
     lowest_KS = 9999
     for ind, val in enumerate(permutations_dicts):
       unchanged_val = copy.deepcopy(val)
       self.set_params(val)
-      self.norm_and_fit(original_train, target_train, original_train_weight, target_train_weight)
-      test_reweights = self.predict_reweights(original_test)
+      self.norm_and_fit(original_train, target_train, original_train_weight, target_train_weight, cap_at=cap_at)
+      test_reweights = self.predict_reweights(original_test,cap_at=cap_at)
       score = self.KS(original_test, target_test, np.multiply(original_test_weight,test_reweights), target_test_weight, columns=scoring_variables)
       print "Parameter grid:", unchanged_val
       print "KS score:", score
@@ -124,7 +129,7 @@ class reweighter(GBReweighter):
     self.KS_value = lowest_KS
     self = best_model 
     
-  def grid_search_batch(self, name, original_train, target_train, original_train_weight, target_train_weight, original_test, target_test, original_test_weight, target_test_weight, param_grid={}, scoring_variables=["pt_1"]):
+  def grid_search_batch(self, name, original_train, target_train, original_train_weight, target_train_weight, original_test, target_test, original_test_weight, target_test_weight, param_grid={}, scoring_variables=["pt_1"], cap_at=None):
     from UserCode.BDTFakeFactors.batch import CreateJob,CreateBatchJob,SubmitBatchJob
     if not os.path.isdir("scan_batch"): os.system("mkdir scan_batch")
     if not os.path.isdir("scan_batch/dataframes"): os.system("mkdir scan_batch/dataframes")
@@ -165,7 +170,7 @@ class reweighter(GBReweighter):
                 "original_test_weight = pd.read_pickle('scan_batch/dataframes/{}_original_test_weight_dataframe.pkl')".format(name),
                 "target_test_weight = pd.read_pickle('scan_batch/dataframes/{}_target_test_weight_dataframe.pkl')".format(name),
                 "rwter = reweighter.reweighter()",
-                "rwter.grid_search(original_train, target_train, original_train_weight, target_train_weight, original_test, target_test, original_test_weight, target_test_weight, param_grid={}, scoring_variables={})".format(str(val),str(scoring_variables)),
+                "rwter.grid_search(original_train, target_train, original_train_weight, target_train_weight, original_test, target_test, original_test_weight, target_test_weight, param_grid={}, scoring_variables={},cap_at={})".format(str(val),str(scoring_variables),cap_at),
                 "pkl.dump(rwter,open('scan_batch/models/{}_{}.pkl', 'wb'))".format(name,ind),
                 "with open('scan_batch/hyperparameters/{}_{}.json', 'w') as outfile: json.dump(rwter.dump_hyperparameters(), outfile)".format(name,ind),
                 "score = str(rwter.KS_value)",
@@ -191,6 +196,8 @@ class reweighter(GBReweighter):
         ind+=1 
 
     with open('scan_batch/hyperparameters/{}_{}.json'.format(name,lowest_score_ind)) as json_file: params = json.load(json_file)
-    self.set_params(copy.deepcopy(params))
     print "Best parameter file {}".format(lowest_score_ind)
     print "Best parameters {}".format(params)
+    new_self = pkl.load(open('scan_batch/models/{}_{}.pkl'.format(name,lowest_score_ind), "rb"))
+    new_self.set_params(copy.deepcopy(params))
+    return new_self
