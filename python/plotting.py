@@ -105,16 +105,17 @@ def DrawMultipleROCCurvesOnOnePage(act_dict,pred_dict,wt_dict,output="combined_r
   fig.savefig("plots/"+output+".pdf")
   print "plots/"+output+".pdf created"
 
-def DrawBDTScoreDistributions(pred_dict,output="bdt_score"):
+def DrawBDTScoreDistributions(pred_dict,output="bdt_score",bins=100):
 
   for key, val in pred_dict.items():
-    _, bins, _ = plt.hist(val["preds"], weights=val["weights"] ,bins=100, histtype='step', label=key)
+    _, bins, _ = plt.hist(val["preds"], weights=val["weights"] ,bins=bins, histtype='step', label=key)
   plt.xlabel("BDT Score")
   plt.xlim(bins[0], bins[-1])
   plt.legend(loc='best')
   plt.draw()
   plt.savefig("plots/"+output+".pdf")
   plt.close()
+  print "plots/"+output+".pdf created"
   
 def DrawVarDistribution(df,n_classes,variable,xlim_low,xlim_high,output="var_dist",bin_edges=100):
   if n_classes == 2:
@@ -153,11 +154,13 @@ def DrawVarDistribution(df,n_classes,variable,xlim_low,xlim_high,output="var_dis
   plt.draw()
   plt.savefig("plots/"+output+".pdf")
   plt.close()
+  print "plots/"+output+".pdf created"
 
 def DrawFeatureImportance(model,imp_type,output="feature_importance"):
   ax = plot_importance(model, importance_type = imp_type, xlabel = imp_type)
   ax.tick_params(axis='y', labelsize=5)
   ax.figure.savefig("plots/"+output+".pdf")
+  print "plots/"+output+".pdf created"
 
 def heatmap(data, row_labels, col_labels, ax=None,
             cbar_kw={}, cbarlabel="", **kwargs):
@@ -473,14 +476,20 @@ def ReplaceName(name):
     "emtt":"e#mu#tau#tau",
     "mmtt":" #mu#mu#tau#tau",
     "eett":"ee#tau#tau",
-    "tt":"#tau#tau",
-    "mt":"#mu#tau",
-    "et":"e#tau",
+    "tt":"#tau_{h}#tau_{h}",
+    "mt":"#mu#tau_{h}",
+    "et":"e#tau_{h}",
     "2016_preVFP":"2016-preVFP: 19.5 fb^{-1} (13 TeV)",
     "2016_postVFP":"2016-postVFP: 16.8 fb^{-1} (13 TeV)",
     "2017":"2017: 41.5 fb^{-1} (13 TeV)",
     "2018":"2018: 59.7 fb^{-1} (13 TeV)",
     "all_years":"138 fb^{-1} (13 TeV)",
+    "m_vis": "m_{vis} (GeV)",
+    "met": "E_{T}^{miss} (GeV)",
+    "n_jets": "N_{jets}",
+    "n_deepbjets": "N_{b-jets}",
+    "tau_decay_mode_1": "#tau_{1} DM",
+    "tau_decay_mode_2": "#tau_{2} DM",
     "mvis_12": "m_{vis}^{12} (GeV)",
     "mvis_13": "m_{vis}^{13} (GeV)",
     "mvis_14": "m_{vis}^{14} (GeV)",
@@ -491,6 +500,18 @@ def ReplaceName(name):
     "pt_2": "p_{T}^{2} (GeV)",
     "pt_3": "p_{T}^{3} (GeV)",
     "pt_4": "p_{T}^{4} (GeV)",
+    "svfit_mass": "m_{#tau#tau} (GeV)",
+    "mt_tot": "m_{T}^{tot} (GeV)",
+    "mva_dm_1": "#tau_{1} MVA DM",
+    "mva_dm_2": "#tau_{2} MVA DM",
+    "eta_1": "#eta_{1}",
+    "eta_2": "#eta_{2}",
+    "dN/dm_vis": "dN/dm_{vis} (1/GeV)",
+    "dN/dmet": "dN/dE_{T}^{miss} (1/GeV)",
+    "dN/dn_jets": "dN/dN_{jets}",
+    "dN/dn_deepbjets": "dN/dN_{b-jets}",
+    "dN/dtau_decay_mode_1": "dN/d#tau_{1} DM",
+    "dN/dtau_decay_mode_2": "dN/d#tau_{2} DM",
     "dN/dmvis_12": "dN/dm_{vis}^{12} (1/GeV)",
     "dN/dmvis_13": "dN/dm_{vis}^{13} (1/GeV)",
     "dN/dmvis_14": "dN/dm_{vis}^{14} (1/GeV)",
@@ -501,6 +522,12 @@ def ReplaceName(name):
     "dN/dpt_2": "dN/dp_{T}^{2} (1/GeV)",
     "dN/dpt_3": "dN/dp_{T}^{3} (1/GeV)",
     "dN/dpt_4": "dN/dp_{T}^{4} (1/GeV)",
+    "dN/dsvfit_mass": "dN/dm_{#tau#tau} (1/GeV)",
+    "dN/dmt_tot": "dN/dm_{T}^{tot} (1/GeV)",
+    "dN/dmva_dm_1": "dN/d#tau_{1} MVA DM",
+    "dN/dmva_dm_2": "dN/d#tau_{2} MVA DM",
+    "dN/deta_1": "dN/d#eta_{1}",
+    "dN/deta_2": "dN/d#eta_{2}",
     }
   if name in replace_dict.keys():
     return replace_dict[name]
@@ -523,7 +550,8 @@ def FindRebinning(hist,BinThreshold=100,BinUncertFraction=0.5):
       if hist.GetBinContent(i) != 0: uncert_frac = hist.GetBinError(i)/hist.GetBinContent(i)
       else: uncert_frac = BinUncertFraction+1
       if uncert_frac > BinUncertFraction and hist.GetBinContent(i) < BinThreshold:
-        binning.remove(hist.GetBinLowEdge(i+1))
+        #binning.remove(hist.GetBinLowEdge(i+1))
+        binning.remove(min(binning, key=lambda x:abs(x-hist.GetBinLowEdge(i+1))))
         hist = RebinHist(hist,binning)
         break
       elif i+1 == hist.GetNbinsX():
@@ -538,7 +566,8 @@ def FindRebinning(hist,BinThreshold=100,BinUncertFraction=0.5):
       if hist.GetBinContent(i) != 0: uncert_frac = hist.GetBinError(i)/hist.GetBinContent(i)
       else: uncert_frac = BinUncertFraction+1
       if uncert_frac > BinUncertFraction and hist.GetBinContent(i) < BinThreshold:
-        binning.remove(hist.GetBinLowEdge(i))
+        #binning.remove(hist.GetBinLowEdge(i))
+        binning.remove(min(binning, key=lambda x:abs(x-hist.GetBinLowEdge(i))))
         hist = RebinHist(hist,binning)
         break
       elif i == 2:
@@ -698,7 +727,7 @@ def DrawClosurePlots(df1, df2, df1_name, df2_name, var_name, var_binning, plot_n
 
   PlotDistributionComparison(ReplaceName(var_name), ReplaceName("dN/d{}".format(var_name)),hist1, df1_name, hist2, df2_name, "plots", plot_name, title_left=ReplaceName(title_left), title_right=ReplaceName(title_right),fillcolour=fillcolour,extra_dist=hist3)
 
-def DrawAverageReweightPlots(df1, var_name, var_binning, name, plot_name="reweight_ave_plot", title_left="", title_right="",logx=False,logy=False):
+def DrawAverageReweightPlots(df1, var_name, var_binning, name, plot_name="reweight_ave_plot", title_left="", title_right="",logx=False, logy=False, compare_other_ff=None):
   ROOT.gROOT.SetBatch(ROOT.kTRUE)
   c = ROOT.TCanvas('c','c',600,600)
   if isinstance(var_binning,tuple):
@@ -709,10 +738,12 @@ def DrawAverageReweightPlots(df1, var_name, var_binning, name, plot_name="reweig
   for i in range(0,hout.GetNbinsX()+2): hout.SetBinError(i,0)
   hist1 = hout.Clone()
   hist2 = hout.Clone() 
+  if compare_other_ff != None: hist3 = hout.Clone()
 
   for index, row in df1.iterrows():
     hist1.Fill(row[var_name], row["weights"]*row["reweights"])
     hist2.Fill(row[var_name], row["weights"])
+    if compare_other_ff != None: hist3.Fill(row[var_name], row["weights"]*row[compare_other_ff])
 
   if df1.loc[:,var_name].nunique() > 20:
     binning = FindRebinning(hist1,BinThreshold=100,BinUncertFraction=0.2)
@@ -720,9 +751,11 @@ def DrawAverageReweightPlots(df1, var_name, var_binning, name, plot_name="reweig
     binning = FindRebinning(hist2,BinThreshold=100,BinUncertFraction=0.2)
     hist1 = RebinHist(hist1,binning)
     hist2 = RebinHist(hist2,binning)
+    if compare_other_ff != None: hist3 = RebinHist(hist3,binning)
 
   for i in range(0,hist2.GetNbinsX()+2): hist2.SetBinError(i,0)
   hist1.Divide(hist2)
+  if compare_other_ff != None: hist3.Divide(hist2)
 
   pad = ROOT.TPad("pad","pad",0,0,1,1)
   pad.Draw()
@@ -737,9 +770,22 @@ def DrawAverageReweightPlots(df1, var_name, var_binning, name, plot_name="reweig
   hist1.GetXaxis().SetTitle(ReplaceName(var_name))
   hist1.GetXaxis().SetTitleSize(0.04)
   hist1.GetXaxis().SetTitleOffset(1.3)
-  hist1.GetYaxis().SetTitle("Reweight")
+  hist1.GetYaxis().SetTitle("Average Reweight")
   hist1.GetYaxis().SetTitleSize(0.04)
-  hist1.SetMarkerStyle(19)  
+  hist1.SetMarkerStyle(19) 
+  hist1.SetMinimum(0.1) 
+
+  if compare_other_ff != None:
+    hist3.Draw("E1 same")
+    hist3.SetMarkerStyle(3)
+    hist3.SetMarkerColor(4)
+    hist3.SetLineColor(4)
+
+  l = ROOT.TLegend(0.18,0.65,0.38,0.85);
+  l.SetBorderSize(0)
+  l.AddEntry(hist1,"BDT F_{F}","lep")
+  if compare_other_ff != None: l.AddEntry(hist3,compare_other_ff,"lep")
+  l.Draw()
 
   DrawTitle(pad, ReplaceName(title_left), 1, scale=0.7)
   DrawTitle(pad, ReplaceName(title_right), 3, scale=0.7)

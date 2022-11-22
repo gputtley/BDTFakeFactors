@@ -12,6 +12,7 @@ import itertools
 import os
 import json
 import copy
+import gc
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--analysis',help= 'Analysis to train BDT for', default='4tau')
@@ -51,7 +52,6 @@ if args.batch:
   SubmitBatchJob("jobs/"+name+".sh",time=300)
   exit()
 
-
 if args.scan_batch_ff or args.scan_batch_correction:
   args.no_plots = True
 
@@ -67,7 +67,7 @@ mc_procs = config["mc_procs"]
 multiple_ff = config["multiple_ff"]
 only_do_ff = config["only_do_ff"]
 do_subtraction = config["do_subtraction"]
-#combine_taus = config["combine_taus"]
+combine_taus = config["combine_taus"]
 
 ############# Variables needed #################
 
@@ -99,14 +99,14 @@ for var in plotting_variables:
     bins_float = tuple([int(bins[0]),float(bins[1]),float(bins[2])])
   closure_plot_variables.append(var_name)
   closure_plot_binnings.append(bins_float)
- 
+
 ############# Parameter grid for scan  #################
 
 param_grid = {
-              "n_estimators":[800,1000,1200,1400,1600,2000],
-              "max_depth":[2,3],
-              "learning_rate":[0.04,0.06],
-              "min_samples_leaf": [1200,1400,1600],
+              "n_estimators":[400,600,800,1000,1200],
+              "max_depth":[2,3,4],
+              "learning_rate":[0.03,0.04,0.04],
+              "min_samples_leaf": [400,800,1200],
               "loss_regularization": [5,6]
               }
 
@@ -163,138 +163,160 @@ if not os.path.isdir("hyperparameters/{}".format(args.analysis)): os.system("mkd
 datasets_created = []
 store = {}
 
-for ind, t_ff in enumerate(total_keys):
+### loop through stages ###
+#for rwt_key in ["Raw F_{F}","Alternative F_{F}","Correction"]:
+for rwt_key in ["All"]:
+  tk_variables = []
+  for ind, t_ff in enumerate(total_keys):
 
-  print "<< Running for {} >>".format(t_ff)
-
-
-  ### Setup what dataframes you want to use and where ###
-  t_ff_string = str(t_ff).replace("(","").replace(")","").replace(",","").replace(" ","")
-  sel = MakeSelDict(t_ff,lst_n,SIDEBAND,SIGNAL,PASS,FAIL)
-
-  store[t_ff_string] = ff_ml()
-
-  store[t_ff_string].AddDataframes(ConvertDatasetName(sel["Raw F_{F}"]["fail"],args.channel,args.analysis,subtraction=do_subtraction),ConvertDatasetName(sel["Raw F_{F}"]["pass"],args.channel,args.analysis,subtraction=do_subtraction),"Raw F_{F}")
-  if ind + 1 != len(lst_n):
-    # Alternative and Correction from data
-    store[t_ff_string].AddDataframes(ConvertDatasetName(sel["Alternative F_{F}"]["fail"],args.channel,args.analysis,subtraction=do_subtraction),ConvertDatasetName(sel["Alternative F_{F}"]["pass"],args.channel,args.analysis,subtraction=do_subtraction),"Alternative F_{F}")
-    store[t_ff_string].AddDataframes(ConvertDatasetName(sel["Correction"]["fail"],args.channel,args.analysis,subtraction=do_subtraction),ConvertDatasetName(sel["Correction"]["pass"],args.channel,args.analysis,subtraction=do_subtraction),"Correction")
-  else:
-    for proc in mc_procs:
-      # Alternatice and Correction from MC
-      store[t_ff_string].AddDataframes(ConvertMCDatasetName(sel["Raw F_{F}"]["fail"],proc,args.channel,args.analysis),ConvertMCDatasetName(sel["Raw F_{F}"]["pass"],proc,args.channel,args.analysis),"Alternative F_{F}")
-      store[t_ff_string].AddDataframes(ConvertMCDatasetName(sel["Signal"]["fail"],proc,args.channel,args.analysis),ConvertMCDatasetName(sel["Signal"]["pass"],proc,args.channel,args.analysis),"Correction")
-
-  ### update variables ###
-  fitting_variables_update = []
-  for var in fitting_variables:
-    if "NUM" in var:
-      for i in t_ff:
-        fitting_variables_update.append(var.replace("NUM",str(i)))
-    elif "ALT" in var:
-      for i in tuple(set(lst_n) - set(t_ff)):
-        fitting_variables_update.append(var.replace("ALT",str(i)))
+    print "<< Running for {} >>".format(t_ff)
+  
+    ### Setup what dataframes you want to use and where ###
+    t_ff_string = str(t_ff).replace("(","").replace(")","").replace(",","").replace(" ","")
+    sel = MakeSelDict(t_ff,lst_n,SIDEBAND,SIGNAL,PASS,FAIL)
+  
+    store[t_ff_string] = ff_ml()
+  
+    store[t_ff_string].AddDataframes(ConvertDatasetName(sel["Raw F_{F}"]["fail"],args.channel,args.analysis,subtraction=do_subtraction),ConvertDatasetName(sel["Raw F_{F}"]["pass"],args.channel,args.analysis,subtraction=do_subtraction),"Raw F_{F}")
+    #if ind + 1 != len(lst_n):
+    if not (len(lst_n) > 1 and len(lst_n) == len(t_ff)):
+      # Alternative and Correction from data
+      store[t_ff_string].AddDataframes(ConvertDatasetName(sel["Alternative F_{F}"]["fail"],args.channel,args.analysis,subtraction=do_subtraction),ConvertDatasetName(sel["Alternative F_{F}"]["pass"],args.channel,args.analysis,subtraction=do_subtraction),"Alternative F_{F}")
+      store[t_ff_string].AddDataframes(ConvertDatasetName(sel["Correction"]["fail"],args.channel,args.analysis,subtraction=do_subtraction),ConvertDatasetName(sel["Correction"]["pass"],args.channel,args.analysis,subtraction=do_subtraction),"Correction")
     else:
-      fitting_variables_update.append(var)
+      for proc in mc_procs:
+        # Alternatice and Correction from MC
+        store[t_ff_string].AddDataframes(ConvertMCDatasetName(sel["Raw F_{F}"]["fail"],proc,args.channel,args.analysis),ConvertMCDatasetName(sel["Raw F_{F}"]["pass"],proc,args.channel,args.analysis),"Alternative F_{F}")
+        store[t_ff_string].AddDataframes(ConvertMCDatasetName(sel["Signal"]["fail"],proc,args.channel,args.analysis),ConvertMCDatasetName(sel["Signal"]["pass"],proc,args.channel,args.analysis),"Correction")
+  
+    ### update variables ###
+    fitting_variables_update = []
+    for var in fitting_variables:
+      if "NUM" in var:
+        for i in t_ff:
+          fitting_variables_update.append(var.replace("NUM",str(i)))
+      elif "ALT" in var:
+        for i in tuple(set(lst_n) - set(t_ff)):
+          fitting_variables_update.append(var.replace("ALT",str(i)))
+      else:
+        fitting_variables_update.append(var)
 
-  scoring_variables_update = []
-  for var in scoring_variables:
-    if "NUM" in var:
-      for i in t_ff:
-        scoring_variables_update.append(var.replace("NUM",str(i)))
-    elif "ALT" in var:
-      for i in tuple(set(lst_n) - set(t_ff)):
-        scoring_variables_update.append(var.replace("ALT",str(i)))
-    else:
-      scoring_variables_update.append(var)
+    tk_variables.append(fitting_variables_update) 
 
-  ### loop through stages ###
-  #for rwt_key in ["Raw F_{F}","Alternative F_{F}","Correction"]:
-  for rwt_key in ["All"]:
+    if (not combine_taus) or (combine_taus and ind == 0):
+      scoring_variables_update = []
+      for var in scoring_variables:
+        if "NUM" in var:
+          for i in t_ff:
+            scoring_variables_update.append(var.replace("NUM",str(i)))
+        elif "ALT" in var:
+          for i in tuple(set(lst_n) - set(t_ff)):
+            scoring_variables_update.append(var.replace("ALT",str(i)))
+        else:
+          scoring_variables_update.append(var)
 
     cap_at=None
 
     if (args.scan_batch_ff and "Correction" in rwt_key) or (args.no_correction and "Correction" in rwt_key): continue
 
     rwt_key_name = rwt_key.lower().replace(" ","_").replace("_{","").replace("}","")
-    #if not combine_taus:
-    model_name = "{}_{}_{}_{}_{}".format(args.channel,str(args.fail_wp),args.pass_wp,rwt_key.lower().replace(" ","_").replace("_{","").replace("}",""),str(t_ff).replace("(","").replace(")","").replace(",","").replace(" ",""))
-    #else:
-    #  model_name = "{}_{}_{}_{}_all_taus".format(args.channel,str(args.fail_wp),args.pass_wp,rwt_key.lower().replace(" ","_").replace("_{","").replace("}",""))
+    if not combine_taus:
+      model_name = "{}_{}_{}_{}_{}".format(args.channel,str(args.fail_wp),args.pass_wp,rwt_key.lower().replace(" ","_").replace("_{","").replace("}",""),str(t_ff).replace("(","").replace(")","").replace(",","").replace(" ",""))
+    else:
+      model_name = "{}_{}_{}_{}_all_taus".format(args.channel,str(args.fail_wp),args.pass_wp,rwt_key.lower().replace(" ","_").replace("_{","").replace("}",""))
 
 
     if not ((args.load_models_ff and ("F_{F}" in rwt_key or "All" in rwt_key)) or (args.load_models_correction and "Correction" in rwt_key)):
 
-      print "<< Running reweighting training for {} >>".format(rwt_key)
-
-      #rwter = reweighter.reweighter()
-      rwter = reweighter.reweighter(
-                  n_estimators = 200,
-                  learning_rate = 0.04,
-                  min_samples_leaf = 1200, 
-                  max_depth = 2,
-                  loss_regularization = 6.0                  
-                  )
+      rwter = reweighter.reweighter()
+      #rwter = reweighter.reweighter(
+      #            n_estimators = 200,
+      #            learning_rate = 0.04,
+      #            min_samples_leaf = 1200,
+      #            max_depth = 2,
+      #            loss_regularization = 6.0
+      #            )
 
       if ((not args.collect_scan_batch_ff) and ("F_{F}" in rwt_key or "All" in rwt_key)) or (args.scan_correction and "Correction" in rwt_key):
-        train_fail, wt_train_fail, train_pass, wt_train_pass = store[t_ff_string].GetDataframes(rwt_key,data_type="train",variables=fitting_variables_update)
-        test_fail, wt_test_fail, test_pass, wt_test_pass = store[t_ff_string].GetDataframes(rwt_key,data_type="test",variables=fitting_variables_update)
+        if (not combine_taus) or (combine_taus and ind == 0):
+          train_fail, wt_train_fail, train_pass, wt_train_pass = store[t_ff_string].GetDataframes(rwt_key,data_type="train",variables=copy.deepcopy(fitting_variables_update))
+          test_fail, wt_test_fail, test_pass, wt_test_pass = store[t_ff_string].GetDataframes(rwt_key,data_type="test",variables=copy.deepcopy(fitting_variables_update))
+          if combine_taus: 
+            save_names = train_fail.columns
+        else:
+          train_fail_temp, wt_train_fail_temp, train_pass_temp, wt_train_pass_temp = store[t_ff_string].GetDataframes(rwt_key,data_type="train",variables=copy.deepcopy(fitting_variables_update))
+          test_fail_temp, wt_test_fail_temp, test_pass_temp, wt_test_pass_temp = store[t_ff_string].GetDataframes(rwt_key,data_type="test",variables=copy.deepcopy(fitting_variables_update))
+          replace_dict = {}
+          for ind_rn, rn in enumerate(train_fail_temp.columns): replace_dict[rn] = save_names[ind_rn]
+          train_fail_temp.rename(columns=replace_dict,inplace=True)
+          train_pass_temp.rename(columns=replace_dict,inplace=True)
+          test_fail_temp.rename(columns=replace_dict,inplace=True)
+          test_pass_temp.rename(columns=replace_dict,inplace=True)
 
+          train_fail = pd.concat([train_fail,train_fail_temp], ignore_index=True, sort=False)
+          wt_train_fail = pd.concat([wt_train_fail,wt_train_fail_temp], ignore_index=True, sort=False)
+          train_pass = pd.concat([train_pass,train_pass_temp], ignore_index=True, sort=False)
+          wt_train_pass = pd.concat([wt_train_pass,wt_train_pass_temp], ignore_index=True, sort=False)
+          test_fail = pd.concat([test_fail,test_fail_temp], ignore_index=True, sort=False)
+          wt_test_fail = pd.concat([wt_test_fail,wt_test_fail_temp], ignore_index=True, sort=False)
+          test_pass = pd.concat([test_pass,test_pass_temp], ignore_index=True, sort=False)
+          wt_test_pass = pd.concat([wt_test_pass,wt_test_pass_temp], ignore_index=True, sort=False)
 
+          del train_fail_temp, wt_train_fail_temp, train_pass_temp, wt_train_pass_temp, test_fail_temp, wt_test_fail_temp, test_pass_temp, wt_test_pass_temp 
+          gc.collect()
 
-      
-
+      if combine_taus and ind+1 != len(total_keys): continue
 
       if (args.scan_ff and ("F_{F}" in rwt_key or "All" in rwt_key)) or (args.scan_correction and "Correction" in rwt_key):
-
+  
+        print "<< Running grid search reweighting training for {} >>".format(rwt_key)
         rwter.grid_search(train_fail, train_pass, wt_train_fail ,wt_train_pass, test_fail, test_pass, wt_test_fail ,wt_test_pass, param_grid=param_grid, scoring_variables=scoring_variables_update, cap_at=cap_at)
         with open('hyperparameters/{}/ff_hp_{}.json'.format(args.analysis,model_name), 'w') as outfile: json.dump(rwter.dump_hyperparameters(), outfile)
-
+  
       elif (args.scan_batch_ff and ("F_{F}" in rwt_key or "All" in rwt_key)) or (args.scan_batch_correction and "Correction" in rwt_key):
-
+  
+        print "<< Batch submitting grid search reweighting training for {} >>".format(rwt_key)
         rwter.grid_search_batch(model_name,train_fail, train_pass, wt_train_fail ,wt_train_pass, test_fail, test_pass, wt_test_fail ,wt_test_pass, param_grid=param_grid, scoring_variables=scoring_variables_update, cap_at=cap_at)
-
+  
       elif (args.collect_scan_batch_ff and ("F_{F}" in rwt_key or "All" in rwt_key)) or (args.collect_scan_batch_correction and "Correction" in rwt_key):
- 
+  
+        print "<< Collecting reweighting training for {} >>".format(rwt_key)
         rwter = rwter.collect_grid_search_batch(model_name)
         with open('hyperparameters/{}/ff_hp_{}.json'.format(args.analysis,model_name), 'w') as outfile: json.dump(rwter.dump_hyperparameters(), outfile)
       else:
-
+  
         if (args.load_hyperparameters_ff and ("F_{F}" in rwt_key or "All" in rwt_key)) or (args.load_hyperparameters_correction and "Correction" in rwt_key):
           with open('hyperparameters/{}/ff_hp_{}.json'.format(args.analysis,model_name)) as json_file: params = json.load(json_file)
           rwter.set_params(params)
-
-        print "<< Starting training >> "
+  
+        print "<< Running reweighting training for {} >>".format(rwt_key)
         rwter.norm_and_fit(train_fail, train_pass, wt_train_fail ,wt_train_pass,cap_at=cap_at)
-
+  
       if not (args.scan_batch_ff or args.scan_batch_correction): pkl.dump(rwter,open("BDTs/{}/ff_{}.pkl".format(args.analysis,model_name), "wb"))
-
+  
     else:
 
+      if combine_taus and ind+1 != len(total_keys): continue
+  
       print "<< Loading reweighting training for {} >>".format(rwt_key)
-
       rwter = pkl.load(open("BDTs/{}/ff_{}.pkl".format(args.analysis,model_name), "rb"))
 
-    store[t_ff_string].AddModel(rwter,rwt_key)
+    if not combine_taus: 
+      store[t_ff_string].AddModel(rwter,rwt_key)
+    else:
+      for ind_am, t_ff_am in enumerate(total_keys):
+        t_ff_string_am = str(t_ff_am).replace("(","").replace(")","").replace(",","").replace(" ","")
+        store[t_ff_string_am].AddModel(rwter,rwt_key)
+        store[t_ff_string_am].model[rwt_key].column_names = pd.Index(tk_variables[ind_am])
 
 
+  ### Run plotting ###
+  if not args.no_plots and not args.only_mc:
 
+    print "<< Running plotting >>"
+    for ind, t_ff in enumerate(total_keys):
 
-
-
-
-
-
-
-
-
-
-
-
-
-    ### Run plotting ###
-
-    if not args.no_plots and not args.only_mc:
+      t_ff_string = str(t_ff).replace("(","").replace(")","").replace(",","").replace(" ","")
 
       #logx_lst = ["pt_1","pt_2","m_vis","svfit_mass","mt_tot"]
       logx_lst = ["pt_1","pt_2","pt_3","pt_4","m_vis","svfit_mass","mt_tot","mvis_12","mvis_13","mvis_14","mvis_23","mvis_24","mvis_34"]
@@ -306,8 +328,8 @@ for ind, t_ff in enumerate(total_keys):
       yp = ["all_years"]
       if args.do_year_plots: yp += years
 
-     
-      if rwt_key == "Raw F_{F}" or rwt_key == "All": 
+
+      if rwt_key == "Raw F_{F}" or rwt_key == "All":
         #compare_other_rwt = ["wt_ff_mssm_1","wt_ff_dmbins_1","wt_ff_1"]
         compare_other_rwt = []
       else:
@@ -326,6 +348,4 @@ for ind, t_ff in enumerate(total_keys):
           else:
             tt_name = tt
 
-          store[t_ff_string].PlotReweightsAndClosure(closure_plot_variables, closure_plot_binnings, rwt_key, yr_sel, data_type=tt, title_left=args.channel, title_right="all_years", logx=logx_lst, logy=logy_lst, compare_other_rwt=compare_other_rwt, flat_rwt=True, plot_name="{}_{}_{}_{}_{}".format(tt_name,t_ff_string,rwt_key_name,args.channel,yr))
-
-
+          store[t_ff_string].PlotReweightsAndClosure(closure_plot_variables, closure_plot_binnings, rwt_key, yr_sel, data_type=tt, title_left=args.channel, title_right=yr, logx=logx_lst, logy=logy_lst, compare_other_rwt=compare_other_rwt, flat_rwt=True, plot_name="{}_{}_{}_{}_{}".format(tt_name,t_ff_string,rwt_key_name,args.channel,yr))

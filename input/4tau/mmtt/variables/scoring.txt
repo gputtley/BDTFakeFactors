@@ -1,6 +1,13 @@
-pt_NUM
-jet_pt_NUM
 tau_decay_mode_NUM
-eta_NUM
+jet_pt_NUM/pt_NUM
+pt_NUM
+pt_NUM*cosh(eta_NUM)
+n_jets
+n_bjets
 rho
-met
+mt_NUM
+eta_NUM
+q_NUM
+q_sum
+deepTauVsJets_iso_ALT
+

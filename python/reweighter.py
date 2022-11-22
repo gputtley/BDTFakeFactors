@@ -37,6 +37,7 @@ class reweighter(GBReweighter):
     for i in range(0,10):
       total_original_weights = np.multiply(self.predict_reweights(original,add_norm=True,cap_at=cap_at),original_weight)
       self.normalization = self.normalization*target_weight.sum()/total_original_weights.sum()
+ 
 
   def predict_reweights(self, original, add_norm=True,cap_at=None):
     wts = self.predict_weights(original)
@@ -110,7 +111,7 @@ class reweighter(GBReweighter):
   def grid_search(self, original_train, target_train, original_train_weight, target_train_weight, original_test, target_test, original_test_weight, target_test_weight, param_grid={}, scoring_variables=["pt_1"],cap_at=None):
     keys, values = zip(*param_grid.items())
     permutations_dicts = [dict(zip(keys, v)) for v in itertools.product(*values)]
-    lowest_KS = 9999
+    lowest_KS = 9999999
     for ind, val in enumerate(permutations_dicts):
       unchanged_val = copy.deepcopy(val)
       self.set_params(val)
@@ -195,9 +196,11 @@ class reweighter(GBReweighter):
           lowest_score = 1.0*l
         ind+=1 
 
+    #lowest_score_ind = 128
     with open('scan_batch/hyperparameters/{}_{}.json'.format(name,lowest_score_ind)) as json_file: params = json.load(json_file)
     print "Best parameter file {}".format(lowest_score_ind)
     print "Best parameters {}".format(params)
+    print "Lowest score {}".format(lowest_score)
     new_self = pkl.load(open('scan_batch/models/{}_{}.pkl'.format(name,lowest_score_ind), "rb"))
     new_self.set_params(copy.deepcopy(params))
     return new_self

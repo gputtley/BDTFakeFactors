@@ -8,6 +8,9 @@ import argparse
 #python scripts/batch_add_to_trees.py --input_location=/vols/cms/gu18/Offline/output/4tau/2018_1907 --output_location=/vols/cms/gu18/Offline/output/4tau/2018_1907_ff
 
 parser = argparse.ArgumentParser()
+parser.add_argument('--analysis',help= 'Analysis to train BDT for', default='4tau')
+parser.add_argument('--pass_wp',help= 'Pass WP for fake factors', default='vvvloose')
+parser.add_argument('--fail_wp',help= 'Channel to train BDT for', default=None)
 parser.add_argument('--input_location',help= 'Name of input location (not including file name)', default='/vols/cms/gu18/Offline/output/MSSM/vlq_2018_matched_v2/')
 parser.add_argument('--output_location',help= 'Name of output location (not including file name)', default='/vols/cms/gu18/Offline/output/MSSM/vlq_2018_bdt/')
 parser.add_argument('--file',help= 'Specify to run for a specific file', default='all')
@@ -18,6 +21,9 @@ args = parser.parse_args()
 
 loc = args.input_location
 newloc = args.output_location
+analysis = args.analysis
+pass_wp=args.pass_wp
+fail_wp=args.fail_wp
 
 if loc[-1] == "/": loc = loc[:-1]
 if newloc[-1] == "/": newloc = newloc[:-1]
@@ -42,6 +48,8 @@ for file_name in os.listdir(loc):
       channel = "tt"
     elif "_em_" in file_name:
       channel = "em"
+    elif "_zmm_" in file_name:
+      channel = "zmm"
     elif "_tttt_" in file_name:
       channel = "tttt"
     elif "_ettt_" in file_name:
@@ -60,6 +68,8 @@ for file_name in os.listdir(loc):
       year = "2016_preVFP"
     elif "_2016_postVFP" in file_name:
       year = "2016_postVFP"
+    elif "_2016" in file_name:
+      year = "2016"
     elif "_2017" in file_name:
       year = "2017"
     elif "_2018" in file_name:
@@ -73,7 +83,7 @@ for file_name in os.listdir(loc):
       splits = ((ent - (ent%splitting))/splitting) + 1
 
       for i in range(0,splits):
-        cmd = "python scripts/add_ff_to_trees.py --input_location=%(loc)s --output_location=%(newloc)s --filename=%(file_name)s --channel=%(channel)s --year=%(year)s --splitting=%(splitting)i --offset=%(i)i" % vars()
+        cmd = "python scripts/add_ff_to_trees.py --input_location=%(loc)s --output_location=%(newloc)s --filename=%(file_name)s --channel=%(channel)s --year=%(year)s --splitting=%(splitting)i --offset=%(i)i  --analysis=%(analysis)s --fail_wp=%(fail_wp)s --pass_wp=%(pass_wp)s" % vars()
         CreateBatchJob('jobs/'+file_name.replace('.root','_'+str(i)+'.sh'),cmssw_base,[cmd])
         SubmitBatchJob('jobs/'+file_name.replace('.root','_'+str(i)+'.sh'),time=180,memory=24,cores=1)
 
@@ -132,7 +142,7 @@ for file_name in os.listdir(loc):
           splits = ((ent - (ent%splitting))/splitting) + 1
     
           for i in range(0,splits):
-            cmd = "python scripts/add_ff_to_trees.py --input_location=%(loc)s/%(file_name)s --output_location=%(newloc)s/%(file_name)s --filename=%(syst_file_name)s --channel=%(channel)s --year=%(year)s --splitting=%(splitting)i --offset=%(i)i" % vars()
+            cmd = "python scripts/add_ff_to_trees.py --input_location=%(loc)s/%(file_name)s --output_location=%(newloc)s/%(file_name)s --filename=%(syst_file_name)s --channel=%(channel)s --year=%(year)s --splitting=%(splitting)i --offset=%(i)i --analysis=%(analysis)s --fail_wp=%(fail_wp)s --pass_wp=%(pass_wp)s" % vars()
             CreateBatchJob('jobs/'+syst_file_name.replace('.root',"_")+file_name+'_'+str(i)+'.sh',cmssw_base,[cmd])
             SubmitBatchJob('jobs/'+syst_file_name.replace('.root',"_")+file_name+'_'+str(i)+'.sh',time=180,memory=24,cores=1)
     

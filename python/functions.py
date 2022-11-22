@@ -5,9 +5,13 @@ import numpy as np
 def PrintDatasetSummary(name,dataset):
   print name
   print dataset.head(10)
-  print "Total Length = {}, Total Sum of Weights = {}".format(len(dataset),dataset.loc[:,"weights"].sum())
-  print "Average Weights = {}".format(dataset.loc[:,"weights"].sum()/len(dataset))
-  print ""
+  if "weights" in dataset.columns:
+    print "Total Length = {}, Total Sum of Weights = {}".format(len(dataset),dataset.loc[:,"weights"].sum())
+    print "Average Weights = {}".format(dataset.loc[:,"weights"].sum()/len(dataset))
+    print ""
+  else:
+    print "Total Length = {}".format(len(dataset))
+    print ""
 
 def AddColumnsToDataframe(df, columns, vals):
   for ind, i in enumerate(columns):

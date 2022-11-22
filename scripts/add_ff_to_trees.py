@@ -13,6 +13,9 @@ from UserCode.BDTFakeFactors.reweighter import reweighter
 # python scripts/add_ff_to_trees.py --input_location=/vols/cms/gu18/Offline/output/4tau/2018_1907 --output_location="./" --filename=TauB_mmtt_2018.root --channel=mmtt --year=2018 --splitting=100000 --offset=0
 
 parser = argparse.ArgumentParser()
+parser.add_argument('--analysis',help= 'Analysis to train BDT for', default='4tau')
+parser.add_argument('--pass_wp',help= 'Pass WP for fake factors', default='vvvloose')
+parser.add_argument('--fail_wp',help= 'Channel to train BDT for', default=None)
 parser.add_argument('--input_location',help= 'Name of input location (not including file name)', default='/vols/cms/gu18/Offline/output/4tau/2018_1907')
 parser.add_argument('--output_location',help= 'Name of output location (not including file name)', default='./')
 parser.add_argument('--filename',help= 'Name of file', default='TauB_tttt_2018.root')
@@ -22,9 +25,15 @@ parser.add_argument('--splitting',help= 'Number of events per task', default='10
 parser.add_argument('--offset',help= 'Offset of job', default='0')
 args = parser.parse_args()
 
-tree = uproot.open(args.input_location+'/'+args.filename, localsource=uproot.FileSource.defaults)["ntuple"]
+with open("input/{}/{}/config.json".format(args.analysis,args.channel)) as jsonfile:
+  config = json.load(jsonfile)
 
-models_to_add = {}
+years = config["years"]
+SIDEBAND = config["DR"]
+SIGNAL = config["SR"]
+mc_procs = config["mc_procs"]
+multiple_ff = config["multiple_ff"]
+only_do_ff = config["only_do_ff"]
 
 lst_n = []
 for ind,i in enumerate(args.channel):
@@ -34,14 +43,44 @@ for ind,i in enumerate(args.channel):
 total_keys = []
 for ind,i in enumerate(lst_n):
   for k in list(itertools.combinations(lst_n, ind+1)):
-    str_k = ""
-    for ks in k: str_k += str(ks)
-    models_to_add[str_k] = {} 
-    models_to_add[str_k]["wt_ff_None_vvvloose_raw_{}".format(str_k)] = "ff_{}_None_vvvloose_raw_ff_{}.pkl".format(args.channel,str_k)
-    models_to_add[str_k]["wt_ff_None_vvvloose_alt_{}".format(str_k)] = "ff_{}_None_vvvloose_alternative_ff_{}.pkl".format(args.channel,str_k)
-    models_to_add[str_k]["wt_ff_None_vvvloose_corr_{}".format(str_k)] = "ff_{}_None_vvvloose_correction_{}.pkl".format(args.channel,str_k)
+    if (len(k)==1 and ((not only_do_ff) or only_do_ff==k[0])) or (len(k) > 1 and multiple_ff):
+      total_keys.append(k)
 
+tree = uproot.open(args.input_location+'/'+args.filename, localsource=uproot.FileSource.defaults)["ntuple"]
 
+models_to_add = {}
+
+for ind, t_ff in enumerate(total_keys):
+  str_k = ""
+  for ks in t_ff: str_k += str(ks)
+  models_to_add[str_k] = {} 
+  models_to_add[str_k]["wt_ff_ml_{}".format(str_k)] = "BDTs/{}/ff_{}_{}_{}_all_all_taus.pkl".format(args.analysis,args.channel,args.fail_wp,args.pass_wp)
+  if ind == 0:
+    xgb_model_var = list(pickle.load(open(models_to_add[str_k]["wt_ff_ml_{}".format(str_k)], "rb")).column_names)
+
+lowest_end = 10
+highest_end = 0
+for i in xgb_model_var:
+  if i[-1].isdigit() and i[-2] == "_":
+    if int(i[-1]) < lowest_end: lowest_end = int(i[-1])
+    if int(i[-1]) > highest_end: highest_end = int(i[-1])
+
+def MakeReplaceDict(low,high,val):
+  initial_lst = range(low,high+1)
+  initial = ""
+  for i in initial_lst:
+    initial += str(i)
+  final = initial.replace(val,"")
+  final = val + final
+  rd = {}
+  for ind,s in enumerate(initial): rd[s] = final[ind]
+  return rd
+
+def ReplaceNumber(string,low,high,val):
+  rd = MakeReplaceDict(low,high,val)
+  for k,v in rd.items(): string = string.replace("_"+k,"_X"+k)
+  for k,v in rd.items(): string = string.replace("_X"+k,"_"+v)
+  return string
 
 k = 0
 for small_tree in tree.iterate(entrysteps=int(args.splitting)):
@@ -52,29 +91,31 @@ for small_tree in tree.iterate(entrysteps=int(args.splitting)):
     # add independent weights
     for mkey, mval in models_to_add.items():
       for key, val in mval.items():
-        xgb_model = pickle.load(open("BDTs/{}".format(val), "rb"))       
+        xgb_model = pickle.load(open(val, "rb"))       
         new_df = Dataframe()
         features = list(xgb_model.column_names)
-        features.remove("yr_2016_preVFP")
-        features.remove("yr_2016_postVFP")
-        features.remove("yr_2017")
-        features.remove("yr_2018")
+        for yr in years: features.remove("yr_"+yr)
         new_df.dataframe = df.dataframe.copy(deep=False)
+
+         
+        if len(models_to_add) > 1:
+          for ind, i in enumerate(features): features[ind] = ReplaceNumber(features[ind],lowest_end,highest_end,mkey[-1])
+
         new_df.SelectColumns(features)
-        new_df.dataframe.loc[:,"yr_2016_preVFP"] = (args.year=="2016_preVFP")
-        new_df.dataframe.loc[:,"yr_2016_postVFP"] = (args.year=="2016_postVFP")
-        new_df.dataframe.loc[:,"yr_2017"] = (args.year=="2017")
-        new_df.dataframe.loc[:,"yr_2018"] = (args.year=="2018")
-        new_df.dataframe = new_df.dataframe.reindex(list(xgb_model.column_names), axis=1)
+        for yr in years: new_df.dataframe.loc[:,"yr_"+yr] = (args.year==yr)
+        
+        total_features = list(xgb_model.column_names)
 
-        if "corr" in key: 
-          df.dataframe.loc[:,key] = xgb_model.predict_reweights(new_df.dataframe) 
-        else:
-          df.dataframe.loc[:,key] = xgb_model.predict_reweights(new_df.dataframe,cap_at=1)
-        del new_df
+        if len(models_to_add) > 1:       
+          for ind, i in enumerate(total_features): total_features[ind] = ReplaceNumber(total_features[ind],lowest_end,highest_end,mkey[-1])
 
+        new_df.dataframe = new_df.dataframe.reindex(total_features, axis=1)
+        print new_df.dataframe.head(10)
+        print xgb_model.column_names
+        print " "
+        df.dataframe.loc[:,key] = xgb_model.predict_reweights(new_df.dataframe) 
 
-    df.WriteToRoot(args.output_location+'/'+args.filename.replace(".root","_"+str(k)+".root"))
+    x = df.WriteToRoot(args.output_location+'/'+args.filename.replace(".root","_"+str(k)+".root"),return_tree=False)
     del df, small_tree
     if int(args.offset)!=-1: break
   k += 1

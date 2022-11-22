@@ -30,10 +30,11 @@ class Dataframe:
     self.file_location = ''
     self.file_ext = {}
     self.dataframe = None
-    self.func_dict = {"fabs":"abs(x)","cos":"math.cos(x)","sin":"math.sin(x)", "cosh":"math.cosh(x)", "sinh":"math.sinh(x)", "ln":"math.log(x)", "boolean":"x==0"}
+    self.func_dict = {"fabs":"abs(x)","cos":"math.cos(x)","sin":"math.sin(x)", "cosh":"math.cosh(x)", "sinh":"math.sinh(x)", "ln":"math.log(x)", "boolean":"x==0", "log":"math.log10(x)", "exp":"math.exp(x)",
+                      "gauss_m180_s20":"(1/(math.sqrt(2*math.pi)*20))*math.exp(((x - 180)**2)/(-2*(20**2)))"}
     self.weight_name = "wt"
     self.max_events = 100000
-    self.file_sample = 1000000
+    self.file_sample = 100000
 
 
   def AllSplitStringsSteps(self,selection):
@@ -250,6 +251,7 @@ class Dataframe:
     get_variables = set(self.columns+self.variables_for_selection+self.variables_for_modified)
     remove_list = list(set(get_variables)-set(self.columns))
     for ind, f in enumerate(self.root_files):
+      #print f
       # Get dataframe from root file
       if self.file_location[-1] == "/":
         tree = uproot.open(self.file_location+f.split(" (")[0]+self.file_ext[f])[self.tree_names[ind]]
@@ -277,7 +279,6 @@ class Dataframe:
            df = eval(self.python_selection[f])
         temp_df = pd.concat([temp_df,df], ignore_index=True, sort=False)
 
-        print len(temp_df)
         if len(temp_df) > self.file_sample: 
           temp_df.loc[:,self.weight_name] *= (float(tree.numentries)/float(end))
           break
@@ -423,7 +424,7 @@ class Dataframe:
     import copy
     return copy.deepcopy(self)
 
-  def WriteToRoot(self,path,key='ntuple'):
+  def WriteToRoot(self,path,key='ntuple',return_tree=False):
 
     from collections import Counter
     from numpy.lib.recfunctions import append_fields
@@ -454,31 +455,37 @@ class Dataframe:
 
     arr = df_.to_records(index=False)
 
-    root_file = ROOT.TFile.Open(path, "recreate")
-    if not root_file:
-        raise IOError("cannot open file {0}".format(path))
-    if not root_file.IsWritable():
-        raise IOError("file {0} is not writable".format(path))
+    tree = None
+    if not return_tree:
+      root_file = ROOT.TFile.Open(path, "recreate")
+      if not root_file:
+          raise IOError("cannot open file {0}".format(path))
+      if not root_file.IsWritable():
+          raise IOError("file {0} is not writable".format(path))
 
-    # Navigate to the requested directory
-    open_dirs = [root_file]
-    for dir_name in key.split('/')[:-1]:
-        current_dir = open_dirs[-1].Get(dir_name)
-        if not current_dir:
-            current_dir = open_dirs[-1].mkdir(dir_name)
-        current_dir.cd()
-        open_dirs.append(current_dir)
+      # Navigate to the requested directory
+      open_dirs = [root_file]
+      for dir_name in key.split('/')[:-1]:
+          current_dir = open_dirs[-1].Get(dir_name)
+          if not current_dir:
+              current_dir = open_dirs[-1].mkdir(dir_name)
+          current_dir.cd()
+          open_dirs.append(current_dir)
 
-    # The key is now just the top component
-    key = key.split('/')[-1]
+      # The key is now just the top component
+      key = key.split('/')[-1]
 
-    # If a tree with that name exists, we want to update it
-    tree = open_dirs[-1].Get(key)
-    if not tree:
-        tree = None
+      # If a tree with that name exists, we want to update it
+      tree = open_dirs[-1].Get(key)
+
+    tree = None
     tree = array2tree(arr, name=key, tree=tree)
-    tree.Write(key, ROOT.TFile.kOverwrite)
-    root_file.Close()
+
+    if not return_tree:
+      tree.Write(key, ROOT.TFile.kOverwrite) 
+      root_file.Close()
+    else:
+      return tree
   
   def SplitTrainTestXWts(self):
     train_df = self.dataframe.loc[(self.dataframe.loc[:,"train"] == 1)]
@@ -497,6 +504,11 @@ class Dataframe:
     df = self.dataframe.drop(["weights"],axis=1)
     return df, wt_df
 
+  def SplitXyWts(self,y="y"):
+    wt_df = self.dataframe.loc[:,"weights"]
+    y_df = self.dataframe.loc[:,y]
+    X_df = self.dataframe.drop(["weights",y],axis=1)
+    return X_df, y_df, wt_df
  
   def SplitTrainTestXyWts(self,y="y"):
     train_df = self.dataframe.loc[(self.dataframe.loc[:,"train"] == 1)]

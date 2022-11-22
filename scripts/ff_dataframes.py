@@ -19,6 +19,7 @@ parser.add_argument('--batch', help= 'Run job on the batch',  action='store_true
 parser.add_argument('--verbosity', help= 'Changes how much is printed', type=int, default=0)
 parser.add_argument('--only_mc', help= 'Only run MC dataframe',  action='store_true')
 parser.add_argument('--only_data', help= 'Only run data dataframe',  action='store_true')
+parser.add_argument('--remove_weights', help= 'Remove weights from dataframe',  action='store_true')
 parser.add_argument('--offset', help= 'Offset for batch jobs', type=int, default=None)
 args = parser.parse_args()
 
@@ -32,6 +33,7 @@ SIDEBAND = config["DR"]
 SIGNAL = config["SR"]
 mc_procs = config["mc_procs"]
 multiple_ff = config["multiple_ff"]
+do_subtraction = config["do_subtraction"]
 
 ############# Variables needed #################
 
@@ -45,12 +47,28 @@ scoring_variables = var_scoring_file.read().split("\n")
 var_scoring_file.close()
 scoring_variables = [s.strip() for s in scoring_variables if s]
 
+if do_subtraction:
+  var_subtraction_file = open("input/{}/{}/variables/subtraction.txt".format(args.analysis,args.channel),"r")
+  subtraction_variables = var_subtraction_file.read().split("\n")
+  var_subtraction_file.close()
+  subtraction_variables = [s.strip() for s in subtraction_variables if s]
+else:
+  subtraction_variables = []
+
+if os.path.exists("input/{}/{}/variables/other.txt".format(args.analysis,args.channel)):
+  var_other_file = open("input/{}/{}/variables/other.txt".format(args.analysis,args.channel),"r")
+  other_variables = var_other_file.read().split("\n")
+  var_other_file.close()
+  other_variables = [s.strip() for s in other_variables if s]
+else:
+  other_variables = []
+
 var_plotting_file = open("input/{}/{}/variables/plotting.txt".format(args.analysis,args.channel),"r")
 plotting_variables = var_plotting_file.read().split("\n")
 var_plotting_file.close()
 plotting_variables = [s.strip() for s in plotting_variables if s]
 
-total_variables = list(set(fitting_variables + scoring_variables))
+total_variables = list(set(fitting_variables + scoring_variables + subtraction_variables + other_variables))
 
 for var in plotting_variables:
   if "[" in var:
@@ -61,10 +79,10 @@ for var in plotting_variables:
 
 variables = []
 for var in total_variables:
-  if "NUM" in var:
+  if "NUM" in var or "ALT" in var:
     for ind,i in enumerate(args.channel):
       if i == "t":
-        variables.append(var.replace("NUM",str(ind+1)))
+        variables.append(var.replace("NUM",str(ind+1)).replace("ALT",str(ind+1)))
   else:
     variables.append(var)
 
@@ -156,6 +174,7 @@ for t_ff in total_keys:
 
           pf_df = Dataframe()
           pf_df.LoadRootFilesFromJson("input/{}/{}/selections/data.json".format(args.analysis,args.channel),variables,quiet=(args.verbosity<2),replace=replace)
+          if args.remove_weights: pf_df.dataframe = pf_df.dataframe.drop(["weights"],axis=1)
           pf_df.dataframe.to_pickle("dataframes/{}/{}_dataframe.pkl".format(args.analysis,dataset_name))
           if args.verbosity > 0: PrintDatasetSummary("{} {} dataframe".format(pf_key,rwt_key),pf_df.dataframe)
           datasets_created.append(dataset_name)
@@ -176,6 +195,7 @@ for t_ff in total_keys:
             replace = {"SELECTION":pf_val}
             pf_df = Dataframe()
             pf_df.LoadRootFilesFromJson("input/{}/{}/selections/mc.json".format(args.analysis,args.channel),variables,quiet=(args.verbosity<2),replace=replace,in_extra_name=proc+"_")
+            if args.remove_weights: pf_df.dataframe = pf_df.dataframe.drop(["weights"],axis=1)
             pf_df.dataframe.to_pickle("dataframes/{}/{}_dataframe.pkl".format(args.analysis,dataset_name))
             if args.verbosity > 0: PrintDatasetSummary("{} {} {} dataframe".format(proc,pf_key,t_ff),pf_df.dataframe)
             datasets_created.append(dataset_name)
