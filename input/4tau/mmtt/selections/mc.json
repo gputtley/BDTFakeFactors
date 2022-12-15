@@ -165,7 +165,7 @@
       "add_column_vals" : [1,0,0,0]
     }
   },
-  "baseline_sel" : "(iso_1<0.15 && iso_2<0.15 && deepTauVsMu_vloose_3>0.5 && deepTauVsEle_vvloose_3>0.5 && deepTauVsMu_vloose_4>0.5 && deepTauVsEle_vvloose_4>0.5 && ((trg_singlemuon_1==1) || (trg_singlemuon_2==1) || (trg_doubletau_34==1)) && (((isTau==1) && ((trg_singlemuon_1==1) || (trg_singlemuon_2==1)))==0))",
+  "baseline_sel" : "(deepTauVsJets_iso_3>0.1 && deepTauVsJets_iso_4>0.1 && iso_1<0.15 && iso_2<0.15 && deepTauVsMu_vloose_3>0.5 && deepTauVsEle_vvloose_3>0.5 && deepTauVsMu_vloose_4>0.5 && deepTauVsEle_vvloose_4>0.5 && ((trg_singlemuon_1==1) || (trg_singlemuon_2==1) || (trg_doubletau_34==1)) && (((isTau==1) && ((trg_singlemuon_1==1) || (trg_singlemuon_2==1)))==0))",
   "add_column_names" : ["yr_2016_preVFP","yr_2016_postVFP","yr_2017","yr_2018"],
   "lumi" : 1,
   "data" : 0,

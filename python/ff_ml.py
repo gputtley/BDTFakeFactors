@@ -11,6 +11,7 @@ from UserCode.BDTFakeFactors import reweighter
 from array import array
 from hep_ml.metrics_utils import ks_2samp_weighted, compute_cdf
 
+ROOT.gErrorIgnoreLevel = ROOT.kFatal
 
 class ff_ml():
 
@@ -119,7 +120,7 @@ class ff_ml():
       else:
         return df1, df2
 
-  def PlotReweightsFromHistograms(self, var_name, hists, divide_hists, legend_names, title_left="", title_right="", logx=[], logy=[], rebin=True, BinThreshold=100, BinUncertFraction=0.1, colours=[2,6,42,46,39,49], plot_name=""):
+  def PlotReweightsFromHistograms(self, var_name, hists, divide_hists, legend_names, title_left="", title_right="", logx=[], logy=[], rebin=True, BinThreshold=100, BinUncertFraction=0.5, colours=[2,6,42,46,39,49], plot_name=""):
       c_rwt = ROOT.TCanvas('c','c',600,600)
 
       if rebin:
@@ -184,11 +185,12 @@ class ff_ml():
       if plot_name != "": plot_save_name = "_"+plot_name
       save_name = 'plots/reweight_ave_plot_%(var_name)s%(plot_save_name)s.pdf' % vars()
       c_rwt.SaveAs(save_name)
+      print "Created", save_name
       c_rwt.Close()
 
       del pad_rwt, c_rwt
 
-  def PlotClosuresFromHistograms(self, var_name, pass_hist, fail_hists, pass_hist_legend, legend_names, title_left="", title_right="", logx=[], logy=[], rebin=True, BinThreshold=100, BinUncertFraction=0.1, colours=[2,6,42,46,39,49], plot_name=""):
+  def PlotClosuresFromHistograms(self, var_name, pass_hist, fail_hists, pass_hist_legend, legend_names, title_left="", title_right="", logx=[], logy=[], rebin=True, BinThreshold=100, BinUncertFraction=0.5, colours=[2,6,42,46,39,49], plot_name=""):
 
       if rebin:
         for ind1, h1 in enumerate(fail_hists):
@@ -196,10 +198,10 @@ class ff_ml():
           for ind2, h2 in enumerate(fail_hists):
             fail_hists[ind2] = RebinHist(h2,binning)
         pass_hist = RebinHist(pass_hist,binning)
-        #binning = FindRebinning(pass_hist,BinThreshold=BinThreshold,BinUncertFraction=BinUncertFraction)
-        #pass_hist = RebinHist(pass_hist,binning)
-        #for ind2, h2 in enumerate(fail_hists):
-        #  fail_hists[ind2] = RebinHist(h2,binning)
+        binning = FindRebinning(pass_hist,BinThreshold=BinThreshold,BinUncertFraction=BinUncertFraction)
+        pass_hist = RebinHist(pass_hist,binning)
+        for ind2, h2 in enumerate(fail_hists):
+          fail_hists[ind2] = RebinHist(h2,binning)
 
 
       pass_hist.Scale(1.0,"width")
@@ -261,6 +263,15 @@ class ff_ml():
         fail_hists[ind+1].SetLineWidth(2)
         fail_hists[ind+1].SetMarkerStyle(2)
 
+      minimum = 999999.0
+      maximum = 0.0
+      for ind, h in enumerate([pass_hist]+fail_hists):
+        for i in range(0,h.GetNbinsX()+2):
+          if h.GetBinError(i) != 0 and h.GetBinContent(i)-h.GetBinError(i) < minimum: minimum = h.GetBinContent(i)-h.GetBinError(i)
+          if h.GetBinError(i) != 0 and h.GetBinContent(i)+h.GetBinError(i) > maximum: maximum = h.GetBinContent(i)+h.GetBinError(i)
+
+      fail_hists[0].SetMaximum(1.6*maximum) # for legend
+
       l = ROOT.TLegend(0.5,0.55,0.88,0.85);
       l.SetBorderSize(0)
       l.AddEntry(pass_hist,pass_hist_legend,"lep")
@@ -285,7 +296,7 @@ class ff_ml():
       pass_hist_ratio.SetMarkerSize(0)
       pass_hist_ratio.SetFillColorAlpha(12,0.5)
       pass_hist_ratio.SetLineWidth(0)
-      pass_hist_ratio.SetAxisRange(0.6,1.4,'Y')
+      pass_hist_ratio.SetAxisRange(0,2,'Y')
       pass_hist_ratio.GetYaxis().SetNdivisions(4)
       pass_hist_ratio.SetStats(0)
       pass_hist_ratio.GetXaxis().SetLabelSize(0.1)
@@ -310,8 +321,8 @@ class ff_ml():
         pass_hist_fail_hists_ratio[ind+1].SetMarkerColor(colours[ind])
         pass_hist_fail_hists_ratio[ind+1].SetMarkerStyle(2)
 
-      ratio_line_up = ROOT.TLine(pass_hist.GetBinLowEdge(1),1.2,pass_hist.GetBinLowEdge(pass_hist.GetNbinsX()+1),1.2)
-      ratio_line_down = ROOT.TLine(pass_hist.GetBinLowEdge(1),0.8,pass_hist.GetBinLowEdge(pass_hist.GetNbinsX()+1),0.8)
+      ratio_line_up = ROOT.TLine(pass_hist.GetBinLowEdge(1),1.5,pass_hist.GetBinLowEdge(pass_hist.GetNbinsX()+1),1.5)
+      ratio_line_down = ROOT.TLine(pass_hist.GetBinLowEdge(1),0.5,pass_hist.GetBinLowEdge(pass_hist.GetNbinsX()+1),0.5)
       ratio_line.SetLineStyle(3)
       ratio_line_up.SetLineStyle(3)
       ratio_line_down.SetLineStyle(3)
@@ -331,12 +342,13 @@ class ff_ml():
       c_clos.Update()
       clos_name = 'plots/closure_plot_%(var_name)s%(plot_save_name)s.pdf' % vars()
       c_clos.SaveAs(clos_name)
+      print "Created", clos_name
       c_clos.Close()
 
       del pad1, pad2, c_clos
       gc.collect()
 
-  def PlotReweightsAndClosure(self, var, binnings, name, sel, data_type=None, title_left="", title_right="", logx=[], logy=[], compare_other_rwt=[], flat_rwt=False, plot_name="", BinThreshold=100, BinUncertFraction=0.1):
+  def PlotReweightsAndClosure(self, var, binnings, name, sel, data_type=None, title_left="", title_right="", logx=[], logy=[], compare_other_rwt=[], flat_rwt=False, plot_name="", BinThreshold=100, BinUncertFraction=0.5):
 
     ROOT.gROOT.SetBatch(ROOT.kTRUE)
     ROOT.TGaxis.SetExponentOffset(-0.06, 0.01, "y");
@@ -354,6 +366,11 @@ class ff_ml():
       
       # make dataframe fail
       df = self.GetDataframes(n,data_type=data_type,full=True,all_mode=(name=="All"),return_specific=1)
+
+      if len(df)==0:
+        print "WARNING: No events in dataset. Skipping."
+        continue
+
       df_func = Dataframe()
       if sel != None:
         df = eval("df.loc[({})]".format(''.join(df_func.AllSplitStringsSteps(sel))))
@@ -379,6 +396,11 @@ class ff_ml():
  
       # make dataframe pass
       df = self.GetDataframes(n,data_type=data_type,full=True,all_mode=(name=="All"),return_specific=2)
+
+      if len(df)==0:
+        print "WARNING: No events in dataset. Skipping."
+        continue
+
       df_func = Dataframe()
       if sel != None:
         df = eval("df.loc[({})]".format(''.join(df_func.AllSplitStringsSteps(sel))))
@@ -465,6 +487,10 @@ class ff_ml():
         if flat_rwt:
           hist4 = hout.Clone()
           hist4.SetName('hist4')
+
+        if n not in ttree_pass or n not in ttree_fail:
+          print "WARNING: No events in dataset. Skipping."
+          continue
 
         hist1.SetDirectory(ROOT.gROOT) 
         ttree_pass[n].Draw('%(var_name)s>>hist1' % vars(),'weights*(1)','goff')

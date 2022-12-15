@@ -7,8 +7,10 @@ import argparse
 import numpy as np
 import xgboost as xgb
 import itertools
+import copy
 from UserCode.BDTFakeFactors.Dataframe import Dataframe
 from UserCode.BDTFakeFactors.reweighter import reweighter
+from UserCode.BDTFakeFactors.functions import SampleValuesAndGiveLargestShift
 
 # python scripts/add_ff_to_trees.py --input_location=/vols/cms/gu18/Offline/output/4tau/2018_1907 --output_location="./" --filename=TauB_mmtt_2018.root --channel=mmtt --year=2018 --splitting=100000 --offset=0
 
@@ -78,15 +80,22 @@ def MakeReplaceDict(low,high,val):
 
 def ReplaceNumber(string,low,high,val):
   rd = MakeReplaceDict(low,high,val)
-  for k,v in rd.items(): string = string.replace("_"+k,"_X"+k)
-  for k,v in rd.items(): string = string.replace("_X"+k,"_"+v)
+  for k,v in rd.items(): 
+    if string[:2] != "yr":
+      string = string.replace("_"+k,"_X"+k)
+
+  for k,v in rd.items(): 
+    if string[:2] != "yr":
+      string = string.replace("_X"+k,"_"+v)
   return string
 
 k = 0
 for small_tree in tree.iterate(entrysteps=int(args.splitting)):
+  print k
   if k == int(args.offset) or int(args.offset)==-1:
     df = Dataframe()
     df.dataframe = pandas.DataFrame.from_dict(small_tree)
+    print "Loaded tree"
 
     # add independent weights
     for mkey, mval in models_to_add.items():
@@ -96,7 +105,7 @@ for small_tree in tree.iterate(entrysteps=int(args.splitting)):
         features = list(xgb_model.column_names)
         for yr in years: features.remove("yr_"+yr)
         new_df.dataframe = df.dataframe.copy(deep=False)
-
+        
          
         if len(models_to_add) > 1:
           for ind, i in enumerate(features): features[ind] = ReplaceNumber(features[ind],lowest_end,highest_end,mkey[-1])
@@ -110,11 +119,19 @@ for small_tree in tree.iterate(entrysteps=int(args.splitting)):
           for ind, i in enumerate(total_features): total_features[ind] = ReplaceNumber(total_features[ind],lowest_end,highest_end,mkey[-1])
 
         new_df.dataframe = new_df.dataframe.reindex(total_features, axis=1)
-        print new_df.dataframe.head(10)
-        print xgb_model.column_names
-        print " "
         df.dataframe.loc[:,key] = xgb_model.predict_reweights(new_df.dataframe) 
 
+        # uncertainties
+        #q_sum_uncert = SampleValuesAndGiveLargestShift(copy.deepcopy(new_df.dataframe),xgb_model,"q_sum",[0.0],[-2.0,-1.0,1.0,2.0],continuous=False,n_samples=5)
+        #df.dataframe.loc[:,key+"_q_sum_up"] = q_sum_uncert.loc[:,"up"]
+        #df.dataframe.loc[:,key+"_q_sum_down"] = q_sum_uncert.loc[:,"down"]
+        iso_features = [x for x in new_df.dataframe.columns if "deepTauVsJets_iso_" in x]
+        iso_uncert = SampleValuesAndGiveLargestShift(copy.deepcopy(new_df.dataframe),xgb_model,iso_features,[[0.1,1.0]]*len(iso_features),[[0.1,1.0]]*len(iso_features),continuous=True,n_samples=20)
+        df.dataframe.loc[:,key+"_iso_up"] = iso_uncert.loc[:,"up"]
+        df.dataframe.loc[:,key+"_iso_down"] = iso_uncert.loc[:,"down"]
+
+
+        print df.dataframe
     x = df.WriteToRoot(args.output_location+'/'+args.filename.replace(".root","_"+str(k)+".root"),return_tree=False)
     del df, small_tree
     if int(args.offset)!=-1: break

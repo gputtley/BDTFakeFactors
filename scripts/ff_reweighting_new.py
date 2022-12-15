@@ -39,7 +39,7 @@ parser.add_argument('--no_correction', help= 'Do not run correction',  action='s
 args = parser.parse_args()
 
 if args.batch:
-  cmd = "python scripts/ff_reweighting.py"
+  cmd = "python scripts/ff_reweighting_new.py"
   for a in vars(args):
     if a == "batch": continue
     if getattr(args, a) == True and type(getattr(args, a)) == bool:
@@ -121,21 +121,21 @@ param_grid = {
 ############ Functions ##########################
 
 def ConvertDatasetName(pf_val,ch,ana,subtraction=False):
-  name = "dataframes/{}/{}_{}_dataframe.pkl".format(ana,ch,pf_val.replace(" ","").replace("(","").replace(")","").replace("==","_eq_").replace("!=","_neq_").replace(">=","_geq_").replace("&&","_and_").replace("deepTauVsJets","dTvJ"))
+  name = "dataframes/{}/{}_{}_dataframe.pkl".format(ana,ch,pf_val.replace(" ","").replace("(","").replace(")","").replace("==","_eq_").replace("!=","_neq_").replace(">=","_geq_").replace("&&","_and_").replace("||","_or_").replace("deepTauVsJets","dTvJ"))
   if not subtraction:
     return name
   else:
     return name.replace(".pkl","_subtraction.pkl")
 
 def ConvertMCDatasetName(pf_val,proc,ch,ana):
-  return "dataframes/{}/{}_{}_mc_{}_dataframe.pkl".format(ana,ch,pf_val.replace(" ","").replace("(","").replace(")","").replace("==","_eq_").replace("!=","_neq_").replace(">=","_geq_").replace("&&","_and_").replace("deepTauVsJets","dTvJ"),proc)
+  return "dataframes/{}/{}_{}_mc_{}_dataframe.pkl".format(ana,ch,pf_val.replace(" ","").replace("(","").replace(")","").replace("==","_eq_").replace("!=","_neq_").replace(">=","_geq_").replace("&&","_and_").replace("||","_or_").replace("deepTauVsJets","dTvJ"),proc)
 
 ############# Assign dataframes #################
 
 ### setup pass and fail ###
 
 if args.fail_wp == None:
-  FAIL = "(deepTauVsJets_iso_X>=0 && deepTauVsJets_{}_X==0)".format(args.pass_wp)
+  FAIL = "(deepTauVsJets_{}_X==0)".format(args.pass_wp)
 else:
   FAIL = "(deepTauVsJets_{}_X==1 && deepTauVsJets_{}_X==0)".format(args.fail_wp,args.pass_wp)
 
@@ -228,7 +228,7 @@ for rwt_key in ["All"]:
 
     if not ((args.load_models_ff and ("F_{F}" in rwt_key or "All" in rwt_key)) or (args.load_models_correction and "Correction" in rwt_key)):
 
-      rwter = reweighter.reweighter()
+      rwter = reweighter.reweighter(n_estimators=600, learning_rate=0.03, min_samples_leaf=1200, max_depth=2, loss_regularization=5)
       #rwter = reweighter.reweighter(
       #            n_estimators = 200,
       #            learning_rate = 0.04,
@@ -288,8 +288,9 @@ for rwt_key in ["All"]:
         if (args.load_hyperparameters_ff and ("F_{F}" in rwt_key or "All" in rwt_key)) or (args.load_hyperparameters_correction and "Correction" in rwt_key):
           with open('hyperparameters/{}/ff_hp_{}.json'.format(args.analysis,model_name)) as json_file: params = json.load(json_file)
           rwter.set_params(params)
-  
+
         print "<< Running reweighting training for {} >>".format(rwt_key)
+        print train_fail
         rwter.norm_and_fit(train_fail, train_pass, wt_train_fail ,wt_train_pass,cap_at=cap_at)
   
       if not (args.scan_batch_ff or args.scan_batch_correction): pkl.dump(rwter,open("BDTs/{}/ff_{}.pkl".format(args.analysis,model_name), "wb"))

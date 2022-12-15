@@ -96,7 +96,7 @@ print "<<<< Making dataframes >>>>"
 ### setup pass and fail ###
 
 if args.fail_wp == None:
-  FAIL = "(deepTauVsJets_iso_X>=0 && deepTauVsJets_{}_X==0)".format(args.pass_wp)
+  FAIL = "(deepTauVsJets_{}_X==0)".format(args.pass_wp)
 else:
   FAIL = "(deepTauVsJets_{}_X==1 && deepTauVsJets_{}_X==0)".format(args.fail_wp,args.pass_wp)
 
@@ -132,12 +132,13 @@ if args.batch:
   for t_ff in total_keys:
     sel = MakeSelDict(t_ff,lst_n,SIDEBAND,SIGNAL,PASS,FAIL)
     for rwt_key, rwt_val in sel.iteritems():
-      cmd = base_cmd + " --offset={}".format(batch_offset)
-      name = "ff_dataframe_job_{}_{}_{}_{}".format(args.channel,args.pass_wp,args.fail_wp,batch_offset)
-      cmssw_base = os.getcwd().replace('src/UserCode/BDTFakeFactors','')
-      CreateBatchJob("jobs/"+name+".sh",cmssw_base,[cmd])
-      SubmitBatchJob("jobs/"+name+".sh")
-      batch_offset += 1
+      for pf_key, pf_val in rwt_val.items():
+        cmd = base_cmd + " --offset={}".format(batch_offset)
+        name = "ff_dataframe_job_{}_{}_{}_{}".format(args.channel,args.pass_wp,args.fail_wp,batch_offset)
+        cmssw_base = os.getcwd().replace('src/UserCode/BDTFakeFactors','')
+        CreateBatchJob("jobs/"+name+".sh",cmssw_base,[cmd])
+        SubmitBatchJob("jobs/"+name+".sh")
+        batch_offset += 1
   exit()
 
 ### Begin load loop ###
@@ -165,7 +166,7 @@ for t_ff in total_keys:
     for pf_key, pf_val in rwt_val.items():
 
       if (not args.only_mc) and (args.offset == offset or args.offset == None):
-        dataset_name = "{}_{}".format(args.channel,pf_val.replace(" ","").replace("(","").replace(")","").replace("==","_eq_").replace("!=","_neq_").replace(">=","_geq_").replace("&&","_and_").replace("deepTauVsJets","dTvJ"))
+        dataset_name = "{}_{}".format(args.channel,pf_val.replace(" ","").replace("(","").replace(")","").replace("==","_eq_").replace("!=","_neq_").replace(">=","_geq_").replace("&&","_and_").replace("||","_or_").replace("deepTauVsJets","dTvJ"))
         replace = {"SELECTION":pf_val}
 
         if dataset_name not in datasets_created:
@@ -176,6 +177,7 @@ for t_ff in total_keys:
           pf_df.LoadRootFilesFromJson("input/{}/{}/selections/data.json".format(args.analysis,args.channel),variables,quiet=(args.verbosity<2),replace=replace)
           if args.remove_weights: pf_df.dataframe = pf_df.dataframe.drop(["weights"],axis=1)
           pf_df.dataframe.to_pickle("dataframes/{}/{}_dataframe.pkl".format(args.analysis,dataset_name))
+          print "Created", "dataframes/{}/{}_dataframe.pkl".format(args.analysis,dataset_name)
           if args.verbosity > 0: PrintDatasetSummary("{} {} dataframe".format(pf_key,rwt_key),pf_df.dataframe)
           datasets_created.append(dataset_name)
           del pf_df
@@ -186,7 +188,7 @@ for t_ff in total_keys:
       if (not args.only_data) and (args.offset == offset or args.offset == None):
         for proc in mc_procs:
 
-          dataset_name = "{}_{}_mc_{}".format(args.channel,pf_val.replace(" ","").replace("(","").replace(")","").replace("==","_eq_").replace("!=","_neq_").replace(">=","_geq_").replace("&&","_and_").replace("deepTauVsJets","dTvJ"),proc)
+          dataset_name = "{}_{}_mc_{}".format(args.channel,pf_val.replace(" ","").replace("(","").replace(")","").replace("==","_eq_").replace("!=","_neq_").replace(">=","_geq_").replace("&&","_and_").replace("||","_or_").replace("deepTauVsJets","dTvJ"),proc)
 
           if dataset_name not in datasets_created:
 
@@ -197,6 +199,7 @@ for t_ff in total_keys:
             pf_df.LoadRootFilesFromJson("input/{}/{}/selections/mc.json".format(args.analysis,args.channel),variables,quiet=(args.verbosity<2),replace=replace,in_extra_name=proc+"_")
             if args.remove_weights: pf_df.dataframe = pf_df.dataframe.drop(["weights"],axis=1)
             pf_df.dataframe.to_pickle("dataframes/{}/{}_dataframe.pkl".format(args.analysis,dataset_name))
+            print "Created", "dataframes/{}/{}_dataframe.pkl".format(args.analysis,dataset_name)
             if args.verbosity > 0: PrintDatasetSummary("{} {} {} dataframe".format(proc,pf_key,t_ff),pf_df.dataframe)
             datasets_created.append(dataset_name)
             del pf_df

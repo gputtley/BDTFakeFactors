@@ -135,7 +135,7 @@ def ConvertMCDatasetName(pf_val,proc,ch,ana):
 ### setup pass and fail ###
 
 if args.fail_wp == None:
-  FAIL = "(deepTauVsJets_iso_X>=0 && deepTauVsJets_{}_X==0)".format(args.pass_wp)
+  FAIL = "(deepTauVsJets_{}_X==0)".format(args.pass_wp)
 else:
   FAIL = "(deepTauVsJets_{}_X==1 && deepTauVsJets_{}_X==0)".format(args.fail_wp,args.pass_wp)
 

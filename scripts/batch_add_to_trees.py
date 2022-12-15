@@ -17,6 +17,7 @@ parser.add_argument('--file',help= 'Specify to run for a specific file', default
 parser.add_argument('--channel',help= 'Limit to single channel. If not set will do all', default=None)
 parser.add_argument("--syst_trees", action='store_true',help="Also run on systematic variation trees")
 parser.add_argument("--hadd", action='store_true',help="Hadd files after adding branch")
+parser.add_argument("--only_data", action='store_true',help="Only run for data files")
 args = parser.parse_args()
 
 loc = args.input_location
@@ -28,6 +29,7 @@ fail_wp=args.fail_wp
 if loc[-1] == "/": loc = loc[:-1]
 if newloc[-1] == "/": newloc = newloc[:-1]
 
+data_files = ["SingleMuon","SingleElectron","Tau","EGamma"]
 
 splitting = 100000 
 
@@ -40,6 +42,12 @@ if not os.path.isdir(newloc): os.system("mkdir "+newloc)
 
 for file_name in os.listdir(loc):
   if ".root" in file_name  and (args.file=="all" or args.file==file_name):
+    if args.only_data:
+      b = True
+      for dfs in data_files:
+        if file_name.startswith(dfs): b = False
+      if b: continue      
+
     if "_et_" in file_name:
       channel = "et"
     elif "_mt_" in file_name:
@@ -62,7 +70,10 @@ for file_name in os.listdir(loc):
       channel = "mmtt"
     elif "_eett_" in file_name:
       channel = "eett"
-
+    elif "_ttt_" in file_name:
+      channel = "ttt"
+    else:
+      continue
 
     if "_2016_preVFP" in file_name:
       year = "2016_preVFP"
@@ -102,6 +113,13 @@ for file_name in os.listdir(loc):
       if not os.path.isdir(newloc+"/"+file_name): os.system("mkdir "+newloc+"/"+file_name)
 
       if ".root" in syst_file_name  and (args.file=="all" or args.file==syst_file_name):
+
+        if args.only_data:
+          b = True
+          for dfs in data_files:
+            if file_name.startswith(dfs): b = False
+          if b: continue
+
         if "_et_" in syst_file_name:
           channel = "et"
         elif "_mt_" in syst_file_name:
@@ -122,6 +140,10 @@ for file_name in os.listdir(loc):
           channel = "mmtt"
         elif "_eett_" in file_name:
           channel = "eett"
+        elif "_ttt_" in file_name:
+          channel = "ttt"
+        else:
+          continue
 
 
         if "_2016_preVFP" in syst_file_name:
