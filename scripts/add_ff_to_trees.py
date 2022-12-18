@@ -10,7 +10,7 @@ import itertools
 import copy
 from UserCode.BDTFakeFactors.Dataframe import Dataframe
 from UserCode.BDTFakeFactors.reweighter import reweighter
-from UserCode.BDTFakeFactors.functions import SampleValuesAndGiveLargestShift
+from UserCode.BDTFakeFactors.functions import SampleValuesAndGiveLargestShift, GetNonClosureLargestShift
 
 # python scripts/add_ff_to_trees.py --input_location=/vols/cms/gu18/Offline/output/4tau/2018_1907 --output_location="./" --filename=TauB_mmtt_2018.root --channel=mmtt --year=2018 --splitting=100000 --offset=0
 
@@ -122,16 +122,26 @@ for small_tree in tree.iterate(entrysteps=int(args.splitting)):
         df.dataframe.loc[:,key] = xgb_model.predict_reweights(new_df.dataframe) 
 
         # uncertainties
-        #q_sum_uncert = SampleValuesAndGiveLargestShift(copy.deepcopy(new_df.dataframe),xgb_model,"q_sum",[0.0],[-2.0,-1.0,1.0,2.0],continuous=False,n_samples=5)
-        #df.dataframe.loc[:,key+"_q_sum_up"] = q_sum_uncert.loc[:,"up"]
-        #df.dataframe.loc[:,key+"_q_sum_down"] = q_sum_uncert.loc[:,"down"]
+
+        non_closure_uncert = GetNonClosureLargestShift(copy.deepcopy(new_df.dataframe),"BDTs/ff_non_closure_uncertainties_{}_{}.json".format(args.analysis, args.channel),df.dataframe.loc[:,key])
+        df.dataframe.loc[:,key+"_non_closure_up"] = non_closure_uncert.loc[:,"up"]
+        df.dataframe.loc[:,key+"_non_closure_down"] = non_closure_uncert.loc[:,"down"]
+        if args.channel != "ttt":
+          pass_q = [0.0]
+          fail_q = [-4.0,-2.0,0.0,2.0,4.0]
+        else:
+          pass_q = [-1.0,1.0]
+          fail_q = [-3.0,3.0]
+        q_sum_uncert = SampleValuesAndGiveLargestShift(copy.deepcopy(new_df.dataframe),xgb_model,"q_sum",pass_q,fail_q,continuous=False,n_samples=10)
+        df.dataframe.loc[:,key+"_q_sum_up"] = q_sum_uncert.loc[:,"up"]
+        df.dataframe.loc[:,key+"_q_sum_down"] = q_sum_uncert.loc[:,"down"]
         iso_features = [x for x in new_df.dataframe.columns if "deepTauVsJets_iso_" in x]
-        iso_uncert = SampleValuesAndGiveLargestShift(copy.deepcopy(new_df.dataframe),xgb_model,iso_features,[[0.1,1.0]]*len(iso_features),[[0.1,1.0]]*len(iso_features),continuous=True,n_samples=20)
+        iso_uncert = SampleValuesAndGiveLargestShift(copy.deepcopy(new_df.dataframe),xgb_model,iso_features,[[0.1,1.0]]*len(iso_features),[[0.1,1.0]]*len(iso_features),continuous=True,n_samples=50)
         df.dataframe.loc[:,key+"_iso_up"] = iso_uncert.loc[:,"up"]
         df.dataframe.loc[:,key+"_iso_down"] = iso_uncert.loc[:,"down"]
 
-
-        print df.dataframe
+        #print df.dataframe.loc[:,[key,key+"_non_closure_up",key+"_non_closure_down",key+"_q_sum_up",key+"_q_sum_down",key+"_iso_up",key+"_iso_down"]]
+        #print df.dataframe
     x = df.WriteToRoot(args.output_location+'/'+args.filename.replace(".root","_"+str(k)+".root"),return_tree=False)
     del df, small_tree
     if int(args.offset)!=-1: break

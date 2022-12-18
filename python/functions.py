@@ -2,6 +2,7 @@ from collections import OrderedDict
 import pandas as pd
 import numpy as np
 import copy
+import json
 
 def PrintDatasetSummary(name,dataset):
   print name
@@ -75,6 +76,9 @@ def SampleValuesAndGiveLargestShift(df,model,var,pass_val,fail_val,continuous=Fa
   if type(pass_val[0]) != list: pass_val = [pass_val]
   if type(fail_val[0]) != list: fail_val = [fail_val]
 
+  print pass_val
+  print fail_val
+
   sel_string = "("
   for ind, v in enumerate(var):
     if not continuous:
@@ -100,13 +104,29 @@ def SampleValuesAndGiveLargestShift(df,model,var,pass_val,fail_val,continuous=Fa
     df = copy.deepcopy(store_df)
     for ind, v in enumerate(var):   
       if not continuous:
-        exec('df.loc[{},var] = np.random.choice(fail_val[ind], df.loc[{},:].shape[0])'.format(sel_string,sel_string))
+        exec('df.loc[{},v] = np.random.choice(fail_val[ind], df.loc[{},:].shape[0])'.format(sel_string,sel_string))
       else:
-        exec('df.loc[{},var] = np.random.uniform(fail_val[ind][0],fail_val[ind][1],df.loc[{},:].shape[0])'.format(sel_string,sel_string))
+        exec('df.loc[{},v] = np.random.uniform(fail_val[ind][0],fail_val[ind][1],df.loc[{},:].shape[0])'.format(sel_string,sel_string))
     diff.loc[:,i] = abs(original_weights - model.predict_reweights(df))
   max_diff = diff.max(numeric_only = True, axis = 1)
   return_df = pd.DataFrame()
   return_df.loc[:,"up"] = max_diff + original_weights
   return_df.loc[:,"down"] = original_weights - max_diff
+  print var, "Average Shift:", (return_df.loc[:,"up"].sum()/original_weights.sum())
   return return_df
 
+
+def GetNonClosureLargestShift(df,json_file,reweights):
+  with open(json_file) as json_file: l_funcs = json.load(json_file,object_pairs_hook=OrderedDict)
+  uncert_df = pd.DataFrame()
+  i = 0
+  for k,v in l_funcs.iteritems():
+    exec("uncert_df.loc[:,k] = df.iloc[:,i].apply(lambda x: {})").format(v)
+    i += 1
+  max_uncert = uncert_df.max(numeric_only = True, axis = 1)
+  max_uncert = max_uncert * reweights
+  return_df = pd.DataFrame()
+  return_df.loc[:,"up"] = reweights + max_uncert
+  return_df.loc[:,"down"] = reweights - max_uncert
+  print "Non Closure Average Shift:", (return_df.loc[:,"up"].sum()/reweights.sum())
+  return return_df

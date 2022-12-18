@@ -98,7 +98,6 @@ class ff_ml():
         else:
           #wt_df1 = np.multiply(wt_df1,self.model[name].predict_reweights(X_df1.loc[:,list(self.model[name].column_names)],cap_at=1))
           wt_df1 = np.multiply(wt_df1,self.model[name].predict_reweights(X_df1.loc[:,list(self.model[name].column_names)],cap_at=None))
-
     if (return_specific == None or return_specific == 1): del df1
     if (return_specific == None or return_specific == 2): del df2 
     gc.collect()

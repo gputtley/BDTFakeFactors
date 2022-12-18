@@ -9,7 +9,7 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--analysis',help= 'Analysis to train BDT for', default='4tau')
-parser.add_argument('--pass_wp',help= 'Pass WP for fake factors', default='vvvloose')
+parser.add_argument('--pass_wp',help= 'Pass WP for fake factors', default='loose')
 parser.add_argument('--fail_wp',help= 'Channel to train BDT for', default=None)
 parser.add_argument('--input_location',help= 'Name of input location (not including file name)', default='/vols/cms/gu18/Offline/output/MSSM/vlq_2018_matched_v2/')
 parser.add_argument('--output_location',help= 'Name of output location (not including file name)', default='/vols/cms/gu18/Offline/output/MSSM/vlq_2018_bdt/')
