@@ -324,8 +324,11 @@ class Dataframe:
     self.dataframe = total_df
 
   def LoadRootFilesFromJson(self,json_file,variables,specific_file=None,specific_extra_name=None,quiet=False,in_extra_name="",replace={}):
-    with open(json_file) as jf:
-      data = json.load(jf)
+    if type(json_file) == dict:
+      data = json_file
+    else:
+      with open(json_file) as jf:
+        data = json.load(jf)
 
     if "params_file" in data.keys():
       with open(data["params_file"]) as pf:
@@ -426,6 +429,8 @@ class Dataframe:
 
   def WriteToRoot(self,path,key='ntuple',return_tree=False):
 
+    self.RenameColumnsForROOT()
+
     from collections import Counter
     from numpy.lib.recfunctions import append_fields
     from pandas import DataFrame, RangeIndex
@@ -525,6 +530,41 @@ class Dataframe:
 
     return X_train_df, y_train_df, wt_train_df, X_test_df, y_test_df, wt_test_df
 
- 
+  def RenumberColumns(self,num):
+    keys = self.dataframe.keys()
+    all_nums = []
+    change_store = []
+    for i in keys:
+      if (unicode(str(i[-1]), 'utf-8').isnumeric() and not unicode(str(i[-2]), 'utf-8').isnumeric()):
+        change_store.append(i)
+        if int(i[-1]) not in all_nums:
+          all_nums.append(int(i[-1]))
+      if (i[-1] == ")" and unicode(str(i[-2]), 'utf-8').isnumeric()):
+        change_store.append(i)
+        if int(i[-2]) not in all_nums:
+          all_nums.append(int(i[-2]))
 
+    all_nums.remove(num)   
+    all_nums.sort()
+    change_dict = {str(num):"1"}
+    for ind,i in enumerate(all_nums):
+      change_dict[str(i)] = str(ind+2)
+
+    replace_dict = {}
+    for k in keys:
+      if k in change_store:
+        replace_dict[k] = k
+        for kc, vc in change_dict.items():
+          if kc in k:
+            replace_dict[k] = replace_dict[k].replace(kc,vc)
+            break
+
+    self.dataframe.rename(columns=replace_dict, inplace=True)
+  
+  def RenameColumnsForROOT(self):
+    replace_dict = {}
+    for k in self.dataframe.keys():
+      replace_dict[k] = k.replace("(","_").replace("*","_times_").replace("/","_divide_").replace(")","")
+     
+    self.dataframe.rename(columns=replace_dict, inplace=True)
 

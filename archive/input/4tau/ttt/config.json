@@ -1,0 +1,10 @@
+{
+  "mc_procs" : ["W","ttbar","DY"],
+  "multiple_ff" : false,
+  "only_do_ff": false,
+  "years": ["2016_preVFP","2016_postVFP","2017","2018"],
+  "DR": "(fabs(q_sum)!=1)",
+  "SR": "(fabs(q_sum)==1)",
+  "do_subtraction": false,
+  "combine_taus": true
+}

@@ -76,9 +76,6 @@ def SampleValuesAndGiveLargestShift(df,model,var,pass_val,fail_val,continuous=Fa
   if type(pass_val[0]) != list: pass_val = [pass_val]
   if type(fail_val[0]) != list: fail_val = [fail_val]
 
-  print pass_val
-  print fail_val
-
   sel_string = "("
   for ind, v in enumerate(var):
     if not continuous:
@@ -86,7 +83,7 @@ def SampleValuesAndGiveLargestShift(df,model,var,pass_val,fail_val,continuous=Fa
       for pv in pass_val[ind]:
         sel_string += "(df.{} == {})".format(v,pv)
         if pv != pass_val[ind][-1]:
-          sel_string += ") | "
+          sel_string += " | "
         else:
           sel_string += ")"
     else:

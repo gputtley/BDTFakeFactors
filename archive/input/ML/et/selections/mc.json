@@ -1,0 +1,29 @@
+{
+  "add_sel" : {
+    "ggH_et_2018" : {
+      "files" : [
+		    "GluGluHToTauTau_M-125"
+      ],
+      "sel" : "(SELECTION)"
+    },
+    "VBF_et_2018" : {
+      "files" : [
+        "VBFHToTauTau_M-125-ext1"
+      ],
+      "sel" : "(SELECTION)"
+    },
+    "DY_et_2018" : {
+      "files" : [
+        "DYJetsToLL-LO"
+      ],
+      "sel" : "(SELECTION)"
+    }
+  },
+  "baseline_sel" : "(iso_1<0.15 && deepTauVsEle_tight_2>0.5 && deepTauVsMu_vloose_2>0.5 && pt_2>30 && ((trg_etaucross==1 && pt_2>32 && pt_2<180 && fabs(eta_2)<2.1 && pt_1<33) || (trg_singlemuon==1 && pt_1>=33) || (trg_singletau_2==1 && pt_2>=180 && fabs(eta_2)<2.1)))",
+  "lumi" : 1,
+  "data" : 0,
+  "file_location" : "/vols/cms/gu18/Offline/output/MSSM/combined_2110/",
+  "weights" : "wt",
+  "file_ext" : "_et_2018.root",
+  "params_file" : "/vols/cms/gu18/FF_MSSM/CMSSW_10_2_19/src/UserCode/ICHiggsTauTau/Analysis/HiggsTauTauRun2/scripts/params_mssm_2018.json"
+}

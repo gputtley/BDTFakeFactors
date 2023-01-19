@@ -1,0 +1,194 @@
+---
+channel : "ttt"
+years_and_data_files:
+  "2016_preVFP":
+    - "TauB"
+    - "TauC"
+    - "TauD"
+    - "TauE"
+    - "TauF"
+  "2016_postVFP":
+    - "TauF"
+    - "TauG"
+    - "TauH"
+  "2017":
+    - "TauB"
+    - "TauC"
+    - "TauD"
+    - "TauE"
+    - "TauF"
+  "2018":
+    - "TauA"
+    - "TauB"
+    - "TauC"
+    - "TauD"
+years_and_mc_files:
+  "2016_preVFP":
+    - 'DYJetsToLL-LO'
+    - 'DY1JetsToLL-LO'
+    - 'DY2JetsToLL-LO'
+    - 'DY3JetsToLL-LO'
+    - 'DY4JetsToLL-LO'
+    - 'DYJetsToLL_M-10to50-LO'
+    - 'TTTo2L2Nu'
+    - 'TTToHadronic'
+    - 'TTToSemiLeptonic'
+    - 'WZTo1L1Nu2Q'
+    - 'WZTo3LNu'
+    - 'WZTo3LNu'
+    - 'WWTo2L2Nu'
+    - 'ZZTo2L2Nu'
+    - 'ZZTo4L'
+    - 'T-tW'
+    - 'Tbar-tW'
+    - 'Tbar-t'
+    - 'T-t'
+    - 'WWZ'
+    - 'WWZ-ext1'
+    - 'WZZ'
+    - 'WZZ-ext1'
+    - 'WWW'
+    - 'WWW-ext1'
+    - 'ZZZ'
+    - 'ZZZ-ext1'
+    - 'WJetsToLNu-LO'
+    - 'W1JetsToLNu-LO'
+    - 'W2JetsToLNu-LO'
+    - 'W3JetsToLNu-LO'
+    - 'W4JetsToLNu-LO'
+    - 'EWKWMinus2Jets_WToLNu'
+    - 'EWKWPlus2Jets_WToLNu'
+    - 'WGToLNuG'
+  "2016_postVFP":
+    - 'DYJetsToLL-LO'
+    - 'DY1JetsToLL-LO'
+    - 'DY2JetsToLL-LO'
+    - 'DY3JetsToLL-LO'
+    - 'DY4JetsToLL-LO'
+    - 'DYJetsToLL_M-10to50-LO'
+    - 'TTTo2L2Nu'
+    - 'TTToHadronic'
+    - 'TTToSemiLeptonic'
+    - 'WZTo3LNu'
+    - 'WZTo3LNu'
+    - 'WWTo2L2Nu'
+    - 'ZZTo2L2Nu'
+    - 'ZZTo4L'
+    - 'T-tW'
+    - 'Tbar-tW'
+    - 'Tbar-t'
+    - 'T-t'
+    - 'WWZ'
+    - 'WWZ-ext1'
+    - 'WZZ'
+    - 'WZZ-ext1'
+    - 'WWW'
+    - 'WWW-ext1'
+    - 'ZZZ'
+    - 'ZZZ-ext1'
+    - 'WJetsToLNu-LO'
+    - 'W1JetsToLNu-LO'
+    - 'W2JetsToLNu-LO'
+    - 'W3JetsToLNu-LO'
+    - 'W4JetsToLNu-LO'
+    - 'EWKWMinus2Jets_WToLNu'
+    - 'EWKWPlus2Jets_WToLNu'
+    - 'WGToLNuG'
+  "2017":
+    - 'DYJetsToLL-LO'
+    - 'DY1JetsToLL-LO'
+    - 'DY2JetsToLL-LO'
+    - 'DY3JetsToLL-LO'
+    - 'DY4JetsToLL-LO'
+    - 'DYJetsToLL_M-10to50-LO'
+    - 'TTTo2L2Nu'
+    - 'TTToHadronic'
+    - 'TTToSemiLeptonic'
+    - 'T-tW'
+    - 'Tbar-tW'
+    - 'Tbar-t'
+    - 'T-t'
+    - 'WZTo3LNu'
+    - 'WWTo2L2Nu'
+    - 'ZZTo2L2Nu'
+    - 'ZZTo4L'
+    - 'WWZ'
+    - 'WWZ-ext1'
+    - 'WZZ'
+    - 'WZZ-ext1'
+    - 'WWW'
+    - 'WWW-ext1'
+    - 'ZZZ'
+    - 'ZZZ-ext1'
+    - 'WJetsToLNu-LO'
+    - 'W1JetsToLNu-LO'
+    - 'W2JetsToLNu-LO'
+    - 'W3JetsToLNu-LO'
+    - 'W4JetsToLNu-LO'
+    - 'EWKWMinus2Jets_WToLNu'
+    - 'EWKWPlus2Jets_WToLNu'
+    - 'WGToLNuG'
+  "2018":
+    - 'DYJetsToLL-LO'
+    - 'DY1JetsToLL-LO'
+    - 'DY2JetsToLL-LO'
+    - 'DY3JetsToLL-LO'
+    - 'DY4JetsToLL-LO'
+    - 'DYJetsToLL_M-10to50-LO'
+    - 'TTTo2L2Nu'
+    - 'TTToHadronic'
+    - 'TTToSemiLeptonic'
+    - 'WZTo1L1Nu2Q'
+    - 'WZTo3LNu'
+    - 'WWTo1L1Nu2Q'
+    - 'WWTo2L2Nu'
+    - 'ZZTo2L2Nu'
+    - 'ZZTo4L'
+    - 'Tbar-t'
+    - 'Tbar-tW'
+    - 'T-t'
+    - 'T-tW'
+    - 'WWZ'
+    - 'WWZ-ext1'
+    - 'WZZ'
+    - 'WZZ-ext1'
+    - 'WWW'
+    - 'WWW-ext1'
+    - 'ZZZ'
+    - 'ZZZ-ext1'
+    - 'WJetsToLNu-LO'
+    - 'W1JetsToLNu-LO'
+    - 'W2JetsToLNu-LO'
+    - 'W3JetsToLNu-LO'
+    - 'W4JetsToLNu-LO'
+    - 'EWKWMinus2Jets_WToLNu'
+    - 'EWKWPlus2Jets_WToLNu'
+    - 'WGToLNuG'
+baseline_selection: "deepTauVsJets_iso_1>0.1 && deepTauVsJets_iso_2>0.1 && deepTauVsJets_iso_3>0.1 && deepTauVsMu_vloose_1>0.5 && deepTauVsEle_vvloose_1>0.5 && deepTauVsMu_vloose_2>0.5 && deepTauVsEle_vvloose_2>0.5 && deepTauVsMu_vloose_3>0.5 && deepTauVsEle_vvloose_3>0.5 && ((trg_doubletau_12==1) || (trg_doubletau_13==1) || (trg_doubletau_23==1))"
+pass_selection: "deepTauVsJets_loose_NUM"
+sideband_pass: "fabs(q_sum)==1"
+alt_sideband_pass: "deepTauVsJets_loose_ALT"
+mc_gen_match: "gen_match_NUM==6"
+years_and_lumi:
+  "2016_preVFP": 19520.0
+  "2016_postVFP": 16810.0
+  "2017": 41530.0 
+  "2018": 59740.0
+param_file: "/vols/cms/gu18/4tau_v3/CMSSW_10_2_19/src/UserCode/ICHiggsTauTau/Analysis/4tau/scripts/params_UL_YEAR.json"
+mc_weight: "wt"
+file_location: "/vols/cms/gu18/Offline/output/4tau/2411" 
+file_ext: "_ttt_YEAR.root"
+variables:
+  - "tau_decay_mode_NUM"
+  - "jet_pt_NUM/pt_NUM"
+  - "pt_NUM"
+  - "pt_NUM*cosh(eta_NUM)"
+  - "n_jets"
+  - "n_bjets"
+  - "rho"
+  - "mt_NUM"
+  - "eta_NUM"
+  - "q_NUM"
+  - "q_sum"
+  - "deepTauVsJets_iso_ALT"
+  - "YEAR"

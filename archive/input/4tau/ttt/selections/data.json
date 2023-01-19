@@ -1,0 +1,59 @@
+{
+  "add_sel" : {
+    "ttt_2018" : {
+      "files" : [
+        "TauA",
+        "TauB",
+        "TauC",
+        "TauD"
+      ],
+      "sel" : "(SELECTION)",
+      "weight" : 1.0,
+      "file_ext" : "_ttt_2018.root",
+      "add_column_vals" : [0,0,0,1]
+    },
+    "ttt_2017" : {
+      "files" : [
+        "TauB",
+        "TauC",
+        "TauD",
+        "TauE",
+        "TauF"
+      ],
+      "sel" : "(SELECTION)",
+      "weight" : 1.0,
+      "file_ext" : "_ttt_2017.root",
+      "add_column_vals" : [0,0,1,0]
+    },
+    "ttt_2016_postVFP" : {
+      "files" : [
+        "TauF",
+        "TauG",
+        "TauH"
+      ],
+      "sel" : "(SELECTION)",
+      "weight" : 1.0,
+      "file_ext" : "_ttt_2016_postVFP.root",
+      "add_column_vals" : [0,1,0,0]
+    },
+    "ttt_2016_preVFP" : {
+      "files" : [
+        "TauB",
+        "TauC",
+        "TauD",
+        "TauE",
+        "TauF"
+      ],
+      "sel" : "(SELECTION)",
+      "weight" : 1.0,
+      "file_ext" : "_ttt_2016_preVFP.root",
+      "add_column_vals" : [1,0,0,0]
+    }
+  },
+  "baseline_sel" : "(deepTauVsJets_iso_1>0.1 && deepTauVsJets_iso_2>0.1 && deepTauVsJets_iso_3>0.1 && deepTauVsMu_vloose_1>0.5 && deepTauVsEle_vvloose_1>0.5 && deepTauVsMu_vloose_2>0.5 && deepTauVsEle_vvloose_2>0.5 && deepTauVsMu_vloose_3>0.5 && deepTauVsEle_vvloose_3>0.5 && ((trg_doubletau_12==1) || (trg_doubletau_13==1) || (trg_doubletau_23==1)))",
+  "add_column_names" : ["yr_2016_preVFP","yr_2016_postVFP","yr_2017","yr_2018"],
+  "lumi" : 1,
+  "data": 1,
+  "file_location" : "/vols/cms/gu18/Offline/output/4tau/2411",
+  "weights" : "wt"
+}

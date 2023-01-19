@@ -1,0 +1,103 @@
+{
+  "add_sel" : {
+    "ggH_tt_2018" : {
+      "files" : [
+		    "GluGluHToTauTau_M-125"
+      ],
+      "params_file" : "/vols/cms/gu18/FF_MSSM/CMSSW_10_2_19/src/UserCode/ICHiggsTauTau/Analysis/HiggsTauTauRun2/scripts/params_mssm_2018.json",
+      "sel" : "((SELECTION) && ((trg_doubletau==1) || (pt_1>180 && (trg_singletau_1==1)) || (pt_2>180 && (trg_singletau_2==1))))",
+      "weight" : 59740.0,
+      "file_ext" : "_tt_2018.root",
+      "add_column_vals" : [0,0,1]
+    },
+    "ggH_tt_2017" : {
+      "files" : [
+        "GluGluHToTauTau_M-125",
+        "GluGluHToTauTau_M-125-ext"
+      ],
+      "params_file" : "/vols/cms/gu18/FF_MSSM/CMSSW_10_2_19/src/UserCode/ICHiggsTauTau/Analysis/HiggsTauTauRun2/scripts/params_mssm_2017.json",
+      "sel" : "((SELECTION) && ((trg_doubletau==1) || (pt_1>180 && (trg_singletau_1==1)) || (pt_2>180 && (trg_singletau_2==1))))",
+      "weight" : 41530.0,
+      "file_ext" : "_tt_2017.root",
+      "add_column_vals" : [0,1,0]
+    },
+    "ggH_tt_2016" : {
+      "files" : [
+        "GluGluToHToTauTau_M-125"
+      ],
+      "params_file" : "/vols/cms/gu18/FF_MSSM/CMSSW_10_2_19/src/UserCode/ICHiggsTauTau/Analysis/HiggsTauTauRun2/scripts/params_mssm_2016.json",
+      "sel" : "((SELECTION) && ((trg_doubletau==1) || (pt_1>120 && (trg_singletau_1==1)) || (pt_2>120 && (trg_singletau_2==1))))",
+      "weight" : 36330.0,
+      "file_ext" : "_tt_2016.root",
+      "add_column_vals" : [1,0,0]
+    },
+    "VBF_tt_2018" : {
+      "files" : [
+        "VBFHToTauTau_M-125-ext1"
+      ],
+      "params_file" : "/vols/cms/gu18/FF_MSSM/CMSSW_10_2_19/src/UserCode/ICHiggsTauTau/Analysis/HiggsTauTauRun2/scripts/params_mssm_2018.json",
+      "sel" : "((SELECTION) && ((trg_doubletau==1) || (pt_1>180 && (trg_singletau_1==1)) || (pt_2>180 && (trg_singletau_2==1))))",
+      "weight" : 59740.0,
+      "file_ext" : "_tt_2018.root",
+      "add_column_vals" : [0,0,1]
+    },
+    "VBF_tt_2017" : {
+      "files" : [
+        "VBFHToTauTau_M-125"
+      ],
+      "params_file" : "/vols/cms/gu18/FF_MSSM/CMSSW_10_2_19/src/UserCode/ICHiggsTauTau/Analysis/HiggsTauTauRun2/scripts/params_mssm_2017.json",
+      "sel" : "((SELECTION) && ((trg_doubletau==1) || (pt_1>180 && (trg_singletau_1==1)) || (pt_2>180 && (trg_singletau_2==1))))",
+      "weight" : 41530.0,
+      "file_ext" : "_tt_2017.root",
+      "add_column_vals" : [0,1,0]
+    },
+    "VBF_tt_2016" : {
+      "files" : [
+        "VBFHToTauTau_M-125"
+      ],
+      "params_file" : "/vols/cms/gu18/FF_MSSM/CMSSW_10_2_19/src/UserCode/ICHiggsTauTau/Analysis/HiggsTauTauRun2/scripts/params_mssm_2016.json",
+      "sel" : "((SELECTION) && ((trg_doubletau==1) || (pt_1>120 && (trg_singletau_1==1)) || (pt_2>120 && (trg_singletau_2==1))))",
+      "weight" : 36330.0,
+      "file_ext" : "_tt_2016.root",
+      "add_column_vals" : [1,0,0]
+    },
+    "DY_tt_2018" : {
+      "files" : [
+        "DYJetsToLL-LO"
+      ],
+      "params_file" : "/vols/cms/gu18/FF_MSSM/CMSSW_10_2_19/src/UserCode/ICHiggsTauTau/Analysis/HiggsTauTauRun2/scripts/params_mssm_2018.json",
+      "sel" : "((SELECTION) && ((trg_doubletau==1) || (pt_1>180 && (trg_singletau_1==1)) || (pt_2>180 && (trg_singletau_2==1))))",
+      "weight" : 59740.0,
+      "file_ext" : "_tt_2018.root",
+      "add_column_vals" : [0,0,1]
+    },
+    "DY_tt_2017" : {
+      "files" : [
+        "DYJetsToLL-LO",
+        "DYJetsToLL-LO-ext1"
+      ],
+      "params_file" : "/vols/cms/gu18/FF_MSSM/CMSSW_10_2_19/src/UserCode/ICHiggsTauTau/Analysis/HiggsTauTauRun2/scripts/params_mssm_2017.json",
+      "sel" : "((SELECTION) && ((trg_doubletau==1) || (pt_1>180 && (trg_singletau_1==1)) || (pt_2>180 && (trg_singletau_2==1))))",
+      "weight" : 41530.0,
+      "file_ext" : "_tt_2017.root",
+      "add_column_vals" : [0,1,0]
+    },
+    "DY_tt_2016" : {
+      "files" : [
+        "DYJetsToLL-LO-ext1",
+        "DYJetsToLL-LO-ext2"
+      ],
+      "params_file" : "/vols/cms/gu18/FF_MSSM/CMSSW_10_2_19/src/UserCode/ICHiggsTauTau/Analysis/HiggsTauTauRun2/scripts/params_mssm_2016.json",
+      "sel" : "((SELECTION) && ((trg_doubletau==1) || (pt_1>120 && (trg_singletau_1==1)) || (pt_2>120 && (trg_singletau_2==1))))",
+      "weight" : 36330.0,
+      "file_ext" : "_tt_2016.root",
+      "add_column_vals" : [1,0,0]
+    }
+  },
+  "baseline_sel" : "(leptonveto==0 && deepTauVsEle_vvloose_1>0.5 && deepTauVsEle_vvloose_2>0.5 && deepTauVsMu_vloose_1>0.5 && deepTauVsMu_vloose_2>0.5)",
+  "add_column_names" : ["yr_2016","yr_2017","yr_2018"],
+  "lumi" : 1,
+  "data" : 0,
+  "file_location" : "/vols/cms/gu18/Offline/output/MSSM/combined_2110/",
+  "weights" : "wt"
+}

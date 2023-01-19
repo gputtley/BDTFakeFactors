@@ -1,0 +1,11 @@
+pt_3
+pt_4
+fabs(dphi_34)
+fabs(dR_34)
+jet_pt_3
+jet_pt_4
+tau_decay_mode_3
+tau_decay_mode_4
+eta_3
+eta_4
+rho

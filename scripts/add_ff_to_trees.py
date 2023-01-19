@@ -8,6 +8,7 @@ import numpy as np
 import xgboost as xgb
 import itertools
 import copy
+import re
 from UserCode.BDTFakeFactors.Dataframe import Dataframe
 from UserCode.BDTFakeFactors.reweighter import reweighter
 from UserCode.BDTFakeFactors.functions import SampleValuesAndGiveLargestShift, GetNonClosureLargestShift
@@ -56,7 +57,11 @@ for ind, t_ff in enumerate(total_keys):
   str_k = ""
   for ks in t_ff: str_k += str(ks)
   models_to_add[str_k] = {} 
-  models_to_add[str_k]["wt_ff_ml_{}".format(str_k)] = "BDTs/{}/ff_{}_{}_{}_all_all_taus.pkl".format(args.analysis,args.channel,args.fail_wp,args.pass_wp)
+  #models_to_add[str_k]["wt_ff_ml_{}".format(str_k)] = "BDTs/{}/ff_{}_{}_{}_all_all_taus.pkl".format(args.analysis,args.channel,args.fail_wp,args.pass_wp)
+  if args.channel != "tttt":
+    models_to_add[str_k]["wt_ff_ml_{}".format(str_k)] = "BDTs/{}/ff_reweights_{}.pkl".format(args.channel,args.channel)
+  else:
+    models_to_add[str_k]["wt_ff_ml_{}".format(str_k)] = "BDTs/ttt/ff_reweights_ttt.pkl"
   if ind == 0:
     xgb_model_var = list(pickle.load(open(models_to_add[str_k]["wt_ff_ml_{}".format(str_k)], "rb")).column_names)
 
@@ -78,16 +83,32 @@ def MakeReplaceDict(low,high,val):
   for ind,s in enumerate(initial): rd[s] = final[ind]
   return rd
 
-def ReplaceNumber(string,low,high,val):
-  rd = MakeReplaceDict(low,high,val)
-  for k,v in rd.items(): 
-    if string[:2] != "yr":
-      string = string.replace("_"+k,"_X"+k)
+#def ReplaceNumber(string,low,high,val):
+#  rd = MakeReplaceDict(low,high,val)
+#  for k,v in rd.items(): 
+#    if string[:2] != "yr":
+#      string = string.replace("_"+k,"_X"+k)
+#
+#  for k,v in rd.items(): 
+#    if string[:2] != "yr":
+#      string = string.replace("_X"+k,"_"+v)
+#  return string
 
-  for k,v in rd.items(): 
-    if string[:2] != "yr":
-      string = string.replace("_X"+k,"_"+v)
-  return string
+def ReplaceNumber(keys,num,other):
+  other.sort()
+  change_dict = {"1":str(num)}
+  for ind,i in enumerate(other):
+    change_dict[str(ind+2)] = str(i)
+
+  replace_dict = {}
+  for k in keys:
+    replace_dict[k] = k
+    for kc, vc in change_dict.items():
+      if kc in k:
+        replace_dict[k] = replace_dict[k].replace(kc,vc)
+        break
+  return replace_dict.values()
+
 
 k = 0
 for small_tree in tree.iterate(entrysteps=int(args.splitting)):
@@ -105,28 +126,41 @@ for small_tree in tree.iterate(entrysteps=int(args.splitting)):
         features = list(xgb_model.column_names)
         for yr in years: features.remove("yr_"+yr)
         new_df.dataframe = df.dataframe.copy(deep=False)
-        
-         
-        if len(models_to_add) > 1:
-          for ind, i in enumerate(features): features[ind] = ReplaceNumber(features[ind],lowest_end,highest_end,mkey[-1])
+      
 
-        new_df.SelectColumns(features)
+        other = [int(m.start()+1) for m in re.finditer('t', args.channel)]
+        other.remove(int(mkey))
+        print "------------------------------------------------------------------------------"
+        if args.channel == "tttt": 
+          lowest_pT = max(other)
+          print other, lowest_pT
+          other.remove(lowest_pT) 
+          new_df.SelectColumns(ReplaceNumber(features,mkey,other)+["q_{}".format(lowest_pT)]) 
+          print new_df.dataframe
+          new_df.dataframe.loc[:,"q_sum"] = new_df.dataframe.loc[:,"q_sum"] - new_df.dataframe.loc[:,"q_{}".format(lowest_pT)]
+          print new_df.dataframe
+          new_df.dataframe = new_df.dataframe.drop(["q_{}".format(lowest_pT)],axis=1) 
+          print new_df.dataframe
+        else:
+          new_df.SelectColumns(ReplaceNumber(features,mkey,other)) 
+
         for yr in years: new_df.dataframe.loc[:,"yr_"+yr] = (args.year==yr)
-        
+        new_df.RenumberColumns(int(mkey))
+        print new_df.dataframe
+
         total_features = list(xgb_model.column_names)
-
-        if len(models_to_add) > 1:       
-          for ind, i in enumerate(total_features): total_features[ind] = ReplaceNumber(total_features[ind],lowest_end,highest_end,mkey[-1])
-
         new_df.dataframe = new_df.dataframe.reindex(total_features, axis=1)
         df.dataframe.loc[:,key] = xgb_model.predict_reweights(new_df.dataframe) 
 
         # uncertainties
+        if args.channel != "tttt":
+          non_closure_uncert = GetNonClosureLargestShift(copy.deepcopy(new_df.dataframe),"BDTs/ff_non_closure_uncertainties_{}.json".format(args.channel),df.dataframe.loc[:,key])
+        else:
+          non_closure_uncert = GetNonClosureLargestShift(copy.deepcopy(new_df.dataframe),"BDTs/ff_non_closure_uncertainties_ttt.json",df.dataframe.loc[:,key])
 
-        non_closure_uncert = GetNonClosureLargestShift(copy.deepcopy(new_df.dataframe),"BDTs/ff_non_closure_uncertainties_{}_{}.json".format(args.analysis, args.channel),df.dataframe.loc[:,key])
         df.dataframe.loc[:,key+"_non_closure_up"] = non_closure_uncert.loc[:,"up"]
         df.dataframe.loc[:,key+"_non_closure_down"] = non_closure_uncert.loc[:,"down"]
-        if args.channel != "ttt":
+        if args.channel not in ["ttt","tttt"]:
           pass_q = [0.0]
           fail_q = [-4.0,-2.0,0.0,2.0,4.0]
         else:
