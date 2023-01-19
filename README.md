@@ -11,7 +11,7 @@ It will also fit this fake rate on every hadronic tau selected in the event simu
 The resulting reweights applied to the fail ID in A will model the background of jet fakes in the pass ID region.
 
 <p align="center">
-  <img src="docs/ff_diagram.png" alt="Diagrametric representation of the fake factor method" width="390"/>
+  <img src="docs/ff_diagram.png" alt="Diagrametric representation of the fake factor method" width="600"/>
 </p>
 
 ## Inputs
@@ -23,7 +23,7 @@ The algorithm will fit fake factors for whenever "t" appears in the channel name
 This config needs to be parsed whenever running a step to derive fake factors.
 Examples of yaml are shown in the config folder.
 
-## Making Dataframes
+## Making dataframes
 
 Pandas dataframes are made from the parsed config file by the following command.
 
@@ -36,7 +36,7 @@ If submitting this option to the batch, 4 cores may need to be requested in orde
 This will then create pickle files of the dataframes in each region B, C and D and store them in the dataframes folder.
 Separate dataframes are stored for data, MC jet fakes and MC others, as well as B, C and D in the pass and fail tau ID regions.
 
-## Purify Fitting Region
+## Purify fitting region
 
 As it is not always possible to define a pure region of jet fakes in data, the contamination from other processes needs to be removed.
 To do this we train a BDT to separate jet fakes and other MC events.
