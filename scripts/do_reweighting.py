@@ -47,8 +47,10 @@ if args.batch:
   name = "reweighting_job_{}".format(data["channel"])
   cmssw_base = os.getcwd().replace('src/UserCode/BDTFakeFactors','')
   CreateBatchJob("jobs/"+name+".sh",cmssw_base,[cmd])
-  #SubmitBatchJob("jobs/"+name+".sh",time=300)
-  SubmitBatchJob("jobs/"+name+".sh")
+  if data["channel"] == "ttt":
+    SubmitBatchJob("jobs/"+name+".sh",time=500)
+  else:
+    SubmitBatchJob("jobs/"+name+".sh")
   exit()
 
 if args.scan_batch:

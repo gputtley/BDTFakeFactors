@@ -16,6 +16,7 @@ import ROOT
 import copy
 import yaml
 import random
+from sklearn import metrics
 ROOT.gROOT.SetBatch(ROOT.kTRUE)
 ROOT.TGaxis.SetExponentOffset(-0.06, 0.01, "y");
 
@@ -69,7 +70,8 @@ if not os.path.isdir("hyperparameters/{}".format(data["channel"])): os.system("m
 if not os.path.isdir("dataframes/{}/subtracted_pass".format(data["channel"])): os.system("mkdir dataframes/{}/subtracted_pass".format(data["channel"]))
 if not os.path.isdir("dataframes/{}/subtracted_fail".format(data["channel"])): os.system("mkdir dataframes/{}/subtracted_fail".format(data["channel"]))
 
-for pf in ["pass","fail"]:
+#for pf in ["pass","fail"]:
+for pf in ["pass"]:
 
   if not args.load_models:
 
@@ -81,7 +83,6 @@ for pf in ["pass","fail"]:
       fdir = "dataframes/{}/mc_{}_{}".format(data["channel"],ft,pf)
       for val in os.listdir(fdir):
         temp_df = pd.read_pickle(fdir+"/"+val)
-        print temp_df
         temp_df.loc[:,"y"] = int(ft=="fake")
         if ind == 0:
           mc_df = Dataframe()
@@ -98,8 +99,10 @@ for pf in ["pass","fail"]:
     xgb_model = xgb.XGBClassifier()
     xgb_model.fit(X, y, sample_weight=wt) 
 
-    pkl.dump(xgb_model,open("BDTs/{}/subtraction_{}.pkl".format(data["channel"],pf), "wb"))
+    scores = xgb_model.predict_proba(X)[:,1]
+    print metrics.roc_auc_score(y,scores)
 
+    pkl.dump(xgb_model,open("BDTs/{}/subtraction_{}.pkl".format(data["channel"],pf), "wb"))
     del temp_df, X, y, wt
 
   else:
@@ -124,7 +127,7 @@ for pf in ["pass","fail"]:
     X_mc_df.drop(["weights"],axis=1,inplace=True)
     mc_df.loc[:,"scores"] = xgb_model.predict_proba(X_mc_df)[:,1]
 
-    nbins = max(min(int(np.floor(mc_df.loc[:,"weights"].sum()/2)),1000),5)
+    nbins = max(min(int(np.floor(mc_df.loc[:,"weights"].sum()/2)),100),5)
     mc_hist, mc_bins = np.histogram(np.array(mc_df.loc[:,"scores"]),bins=nbins,weights=np.array(mc_df.loc[:,"weights"]),range=(0,1))
 
     rm_indices = []
@@ -149,7 +152,6 @@ for pf in ["pass","fail"]:
           else:
             stuck_counter += 1 
           sample = slimmed_data_df.sample()
-    #    print removed_weights, val
  
     ### Remove events ###
     indexes_to_keep = set(range(data_df.shape[0])) - set(rm_indices)
@@ -247,7 +249,7 @@ for pf in ["pass","fail"]:
       hist1.Scale(1.0,"width")
       hist2.Scale(1.0,"width")
       hist3.Scale(1.0,"width")
- 
+
       hist1_divide = hist1.Clone()
       for i in range(0,hist1_divide.GetNbinsX()+2): hist1_divide.SetBinError(i,0)
 

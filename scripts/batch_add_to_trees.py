@@ -41,6 +41,7 @@ if not os.path.isdir(newloc): os.system("mkdir "+newloc)
 
 
 for file_name in os.listdir(loc):
+  if "ZstarTophi" in file_name: continue
   if ".root" in file_name  and (args.file=="all" or args.file==file_name):
     if args.only_data:
       b = True
@@ -86,6 +87,8 @@ for file_name in os.listdir(loc):
     elif "_2018" in file_name:
       year = "2018"
 
+
+    if not "_"+channel+"_"+year+".root" in file_name: continue
 
     if not args.hadd and (args.channel == None or args.channel == channel):
       f = ROOT.TFile(loc+'/'+file_name,"READ")

@@ -28,15 +28,16 @@ parser.add_argument('--splitting',help= 'Number of events per task', default='10
 parser.add_argument('--offset',help= 'Offset of job', default='0')
 args = parser.parse_args()
 
-with open("input/{}/{}/config.json".format(args.analysis,args.channel)) as jsonfile:
-  config = json.load(jsonfile)
+#with open("input/{}/{}/config.json".format(args.analysis,args.channel)) as jsonfile:
+#  config = json.load(jsonfile)
 
-years = config["years"]
-SIDEBAND = config["DR"]
-SIGNAL = config["SR"]
-mc_procs = config["mc_procs"]
-multiple_ff = config["multiple_ff"]
-only_do_ff = config["only_do_ff"]
+years = ["2016_preVFP","2016_postVFP","2017","2018"]
+#mc_procs = config["mc_procs"]
+#multiple_ff = config["multiple_ff"]
+#only_do_ff = config["only_do_ff"]
+multiple_ff = False
+only_do_ff = False
+
 
 lst_n = []
 for ind,i in enumerate(args.channel):
@@ -111,9 +112,10 @@ def ReplaceNumber(keys,num,other):
 
 
 k = 0
+no_loop = True
 for small_tree in tree.iterate(entrysteps=int(args.splitting)):
-  print k
   if k == int(args.offset) or int(args.offset)==-1:
+    no_loop = False
     df = Dataframe()
     df.dataframe = pandas.DataFrame.from_dict(small_tree)
     print "Loaded tree"
@@ -133,20 +135,22 @@ for small_tree in tree.iterate(entrysteps=int(args.splitting)):
         print "------------------------------------------------------------------------------"
         if args.channel == "tttt": 
           lowest_pT = max(other)
-          print other, lowest_pT
+          #print other, lowest_pT
           other.remove(lowest_pT) 
           new_df.SelectColumns(ReplaceNumber(features,mkey,other)+["q_{}".format(lowest_pT)]) 
-          print new_df.dataframe
+          #print new_df.dataframe
           new_df.dataframe.loc[:,"q_sum"] = new_df.dataframe.loc[:,"q_sum"] - new_df.dataframe.loc[:,"q_{}".format(lowest_pT)]
-          print new_df.dataframe
+          #print new_df.dataframe
           new_df.dataframe = new_df.dataframe.drop(["q_{}".format(lowest_pT)],axis=1) 
-          print new_df.dataframe
+          #print new_df.dataframe
         else:
+          #print new_df
+          #print ReplaceNumber(features,mkey,other)
           new_df.SelectColumns(ReplaceNumber(features,mkey,other)) 
 
         for yr in years: new_df.dataframe.loc[:,"yr_"+yr] = (args.year==yr)
         new_df.RenumberColumns(int(mkey))
-        print new_df.dataframe
+        #print new_df.dataframe
 
         total_features = list(xgb_model.column_names)
         new_df.dataframe = new_df.dataframe.reindex(total_features, axis=1)
@@ -174,10 +178,37 @@ for small_tree in tree.iterate(entrysteps=int(args.splitting)):
         df.dataframe.loc[:,key+"_iso_up"] = iso_uncert.loc[:,"up"]
         df.dataframe.loc[:,key+"_iso_down"] = iso_uncert.loc[:,"down"]
 
-        #print df.dataframe.loc[:,[key,key+"_non_closure_up",key+"_non_closure_down",key+"_q_sum_up",key+"_q_sum_down",key+"_iso_up",key+"_iso_down"]]
+        print df.dataframe.loc[:,[key,key+"_non_closure_up",key+"_non_closure_down",key+"_q_sum_up",key+"_q_sum_down",key+"_iso_up",key+"_iso_down"]]
         #print df.dataframe
-    x = df.WriteToRoot(args.output_location+'/'+args.filename.replace(".root","_"+str(k)+".root"),return_tree=False)
+    df.WriteToRoot(args.output_location+'/'+args.filename.replace(".root","_"+str(k)+".root"),return_tree=False)
     del df, small_tree
     if int(args.offset)!=-1: break
   k += 1
+
+if no_loop and k == 0:
+  import ROOT
+  from array import array
+  f = ROOT.TFile(args.input_location+'/'+args.filename)
+  t = f.Get("ntuple")
+
+  nf = ROOT.TFile(args.output_location+'/'+args.filename.replace(".root","_"+str(k)+".root"),"RECREATE")
+  print "Created", args.output_location+'/'+args.filename.replace(".root","_"+str(k)+".root")
+  nt = ROOT.TTree()
+  empty = array( 'i', [ ] )
+  for i in t.GetListOfBranches():
+    nt.Branch(i.GetName(), empty, i.GetName()+'/I')
+
+  for mkey, mval in models_to_add.items():
+    for key, val in mval.items():
+      nt.Branch(key, empty, key+'/I')
+      nt.Branch(key+"_non_closure_up", empty, key+"_non_closure_up"+'/I')
+      nt.Branch(key+"_non_closure_down", empty, key+"_non_closure_down"+'/I')
+      nt.Branch(key+"_q_sum_up", empty, key+"_q_sum_up"+'/I')
+      nt.Branch(key+"_q_sum_down", empty, key+"_q_sum_down"+'/I')
+      nt.Branch(key+"_iso_up", empty, key+"_iso_up"+'/I')
+      nt.Branch(key+"_iso_down", empty, key+"_iso_down"+'/I')
+
+  nt.Write("ntuple",ROOT.TFile.kOverwrite)
+  nf.Close()
+  f.Close()
 print "Finished processing"

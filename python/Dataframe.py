@@ -33,8 +33,8 @@ class Dataframe:
     self.func_dict = {"fabs":"abs(x)","cos":"math.cos(x)","sin":"math.sin(x)", "cosh":"math.cosh(x)", "sinh":"math.sinh(x)", "ln":"math.log(x)", "boolean":"x==0", "log":"math.log10(x)", "exp":"math.exp(x)",
                       "gauss_m180_s20":"(1/(math.sqrt(2*math.pi)*20))*math.exp(((x - 180)**2)/(-2*(20**2)))"}
     self.weight_name = "wt"
-    self.max_events = 100000
-    self.file_sample = 100000
+    self.max_events = 10000000
+    self.file_sample = 10000000
 
 
   def AllSplitStringsSteps(self,selection):
@@ -463,6 +463,7 @@ class Dataframe:
     tree = None
     if not return_tree:
       root_file = ROOT.TFile.Open(path, "recreate")
+      print "Created", path
       if not root_file:
           raise IOError("cannot open file {0}".format(path))
       if not root_file.IsWritable():

@@ -92,6 +92,12 @@ years_and_mc_files:
     - 'EWKWMinus2Jets_WToLNu'
     - 'EWKWPlus2Jets_WToLNu'
     - 'WGToLNuG'
+    - 'GluGluToContinToZZTo2e2mu'
+    - 'GluGluToContinToZZTo2e2tau'
+    - 'GluGluToContinToZZTo2mu2tau'
+    - 'GluGluToContinToZZTo4e'
+    - 'GluGluToContinToZZTo4mu'
+    - 'GluGluToContinToZZTo4tau'
   "2016_postVFP":
     - 'DYJetsToLL-LO'
     - 'DY1JetsToLL-LO'
@@ -127,6 +133,12 @@ years_and_mc_files:
     - 'EWKWMinus2Jets_WToLNu'
     - 'EWKWPlus2Jets_WToLNu'
     - 'WGToLNuG'
+    - 'GluGluToContinToZZTo2e2mu'
+    - 'GluGluToContinToZZTo2e2tau'
+    - 'GluGluToContinToZZTo2mu2tau'
+    - 'GluGluToContinToZZTo4e'
+    - 'GluGluToContinToZZTo4mu'
+    - 'GluGluToContinToZZTo4tau'
   "2017":
     - 'DYJetsToLL-LO'
     - 'DY1JetsToLL-LO'
@@ -161,6 +173,12 @@ years_and_mc_files:
     - 'EWKWMinus2Jets_WToLNu'
     - 'EWKWPlus2Jets_WToLNu'
     - 'WGToLNuG'
+    - 'GluGluToContinToZZTo2e2mu'
+    - 'GluGluToContinToZZTo2e2tau'
+    - 'GluGluToContinToZZTo2mu2tau'
+    - 'GluGluToContinToZZTo4e'
+    - 'GluGluToContinToZZTo4mu'
+    - 'GluGluToContinToZZTo4tau'
   "2018":
     - 'DYJetsToLL-LO'
     - 'DY1JetsToLL-LO'
@@ -197,6 +215,12 @@ years_and_mc_files:
     - 'EWKWMinus2Jets_WToLNu'
     - 'EWKWPlus2Jets_WToLNu'
     - 'WGToLNuG'
+    - 'GluGluToContinToZZTo2e2mu'
+    - 'GluGluToContinToZZTo2e2tau'
+    - 'GluGluToContinToZZTo2mu2tau'
+    - 'GluGluToContinToZZTo4e'
+    - 'GluGluToContinToZZTo4mu'
+    - 'GluGluToContinToZZTo4tau'
 baseline_selection: "deepTauVsJets_iso_3>0.1 && deepTauVsJets_iso_4>0.1 && iso_1<0.15 && iso_2<0.15 && deepTauVsMu_vloose_3>0.5 && deepTauVsEle_vvloose_3>0.5 && deepTauVsMu_vloose_4>0.5 && deepTauVsEle_vvloose_4>0.5 && ((trg_singleelectron_1==1) || (trg_singlemuon_2==1) || (trg_doubletau_34==1)) && ((((isTau==1) && (trg_singlemuon_2==1))==0) && (((isSingleElectron==1) && ((trg_singlemuon_1==1) || (trg_doubletau_34==1)))==0))"
 pass_selection: "deepTauVsJets_loose_NUM"
 sideband_pass: "q_sum==0"
@@ -209,7 +233,7 @@ years_and_lumi:
   "2018": 59740.0
 param_file: "/vols/cms/gu18/4tau_v3/CMSSW_10_2_19/src/UserCode/ICHiggsTauTau/Analysis/4tau/scripts/params_UL_YEAR.json"
 mc_weight: "wt"
-file_location: "/vols/cms/gu18/Offline/output/4tau/combined_1709" 
+file_location: "/vols/cms/gu18/Offline/output/4tau/2301" 
 file_ext: "_emtt_YEAR.root"
 variables:
   - "tau_decay_mode_NUM"
@@ -222,6 +246,7 @@ variables:
   - "mt_NUM"
   - "eta_NUM"
   - "q_NUM"
+  - "trg_doubletau_leg_NUM"
   - "q_sum"
   - "deepTauVsJets_iso_ALT"
   - "YEAR"

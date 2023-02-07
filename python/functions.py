@@ -109,6 +109,8 @@ def SampleValuesAndGiveLargestShift(df,model,var,pass_val,fail_val,continuous=Fa
   return_df = pd.DataFrame()
   return_df.loc[:,"up"] = max_diff + original_weights
   return_df.loc[:,"down"] = original_weights - max_diff
+  return_df.loc[(return_df.loc[:,"down"]<0),"down"] = 0.0
+  return_df.loc[(return_df.loc[:,"up"]<0),"up"] = 0.0
   print var, "Average Shift:", (return_df.loc[:,"up"].sum()/original_weights.sum())
   return return_df
 
@@ -125,5 +127,7 @@ def GetNonClosureLargestShift(df,json_file,reweights):
   return_df = pd.DataFrame()
   return_df.loc[:,"up"] = reweights + max_uncert
   return_df.loc[:,"down"] = reweights - max_uncert
+  return_df.loc[(return_df.loc[:,"down"]<0),"down"] = 0.0
+  return_df.loc[(return_df.loc[:,"up"]<0),"up"] = 0.0
   print "Non Closure Average Shift:", (return_df.loc[:,"up"].sum()/reweights.sum())
   return return_df

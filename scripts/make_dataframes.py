@@ -40,7 +40,8 @@ if args.batch:
     name = "dataframe_job_{}_{}".format(data["channel"],batch_offset)
     cmssw_base = os.getcwd().replace('src/UserCode/BDTFakeFactors','')
     CreateBatchJob("jobs/"+name+".sh",cmssw_base,[cmd])
-    SubmitBatchJob("jobs/"+name+".sh",cores=4)
+#    SubmitBatchJob("jobs/"+name+".sh",cores=4)
+    SubmitBatchJob("jobs/"+name+".sh")
     batch_offset += 1
   exit()
 
@@ -49,7 +50,8 @@ if args.batch:
 def get_total_sel(sel,alt_nums,ind):
   ret = ""
   for num in alt_nums:
-    ret += "(("+sel.replace("ALT",str(num+1))+")==1)"
+    ret += "(("+sel.replace("ALT",str(num+1))+")==1)"      
+    if "ALT" not in sel: break
     if num != alt_nums[-1]: ret += " || "
   ret.replace("NUM",str(ind+1))
   return ret
@@ -127,4 +129,5 @@ for ind, obj in enumerate(data["channel"]):
         df.RenumberColumns(ind+1)
         if args.verbosity > 0: PrintDatasetSummary("{}_{}_{} dataframe".format(dm,k,str(ind+1)),df.dataframe)
         df.dataframe.to_pickle("dataframes/{}/{}_{}/{}_{}_{}.pkl".format(data["channel"], dm, k[:-2], dm, k, str(ind+1)))
+        print "Created dataframes/{}/{}_{}/{}_{}_{}.pkl".format(data["channel"], dm, k[:-2], dm, k, str(ind+1))
       offset +=1
