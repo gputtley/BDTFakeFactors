@@ -52,7 +52,8 @@ def get_total_sel(sel,alt_nums,ind):
   for num in alt_nums:
     ret += "(("+sel.replace("ALT",str(num+1))+")==1)"      
     if "ALT" not in sel: break
-    if num != alt_nums[-1]: ret += " || "
+    #if num != alt_nums[-1]: ret += " || "
+    if num != alt_nums[-1]: ret += " && "
   ret.replace("NUM",str(ind+1))
   return ret
 
@@ -100,6 +101,8 @@ for ind, obj in enumerate(data["channel"]):
   sels["data"]["fail_C"] = "(({})==0) && (({})==0) && (({})==1)".format(pass_sel, or_sideband, or_alt_sideband)
   sels["data"]["pass_D"] = "(({})==1) && (({})==0) && (({})==0)".format(pass_sel, or_sideband, or_alt_sideband)
   sels["data"]["fail_D"] = "(({})==0) && (({})==0) && (({})==0)".format(pass_sel, or_sideband, or_alt_sideband)
+
+  print sels
 
   for k, v in sels["data"].items():
     sels["mc"]["fake_"+k] = "(({})==1) && {}".format(data["mc_gen_match"].replace("NUM",str(ind+1)),v)

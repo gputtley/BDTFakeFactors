@@ -20,6 +20,7 @@ years_and_data_files:
     - "TauG"
     - "TauH"
   "2017":
+    - "SingleMuonB"
     - "SingleMuonC"
     - "SingleMuonD"
     - "SingleMuonE"

@@ -70,8 +70,8 @@ if not os.path.isdir("hyperparameters/{}".format(data["channel"])): os.system("m
 if not os.path.isdir("dataframes/{}/subtracted_pass".format(data["channel"])): os.system("mkdir dataframes/{}/subtracted_pass".format(data["channel"]))
 if not os.path.isdir("dataframes/{}/subtracted_fail".format(data["channel"])): os.system("mkdir dataframes/{}/subtracted_fail".format(data["channel"]))
 
-#for pf in ["pass","fail"]:
-for pf in ["pass"]:
+for pf in ["pass","fail"]:
+#for pf in ["pass"]:
 
   if not args.load_models:
 
