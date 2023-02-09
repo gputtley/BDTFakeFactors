@@ -2,6 +2,20 @@ COUNT=0
 TOTAL=0
 
 for i in $(ls jobs/*output.log); do 
+
+  if [[ "$i" == *"reweighting"* ]]; then
+    continue
+  fi
+  if [[ "$i" == *"dataframe"* ]]; then
+    continue
+  fi
+  if [[ "$i" == *"subtraction"* ]]; then
+    continue
+  fi
+  if [[ "$i" == *"non_closure"* ]]; then
+    continue
+  fi
+
   (( TOTAL++ ))
   if ! grep -q "Finished processing" $i ; then
     echo Error found for $i

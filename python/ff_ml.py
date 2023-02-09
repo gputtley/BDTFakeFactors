@@ -16,13 +16,13 @@ ROOT.gErrorIgnoreLevel = ROOT.kFatal
 class ff_ml():
 
   def __init__(self):
-    self.df1 = {"Raw F_{F}":[], "Alternative F_{F}":[], "Correction":[], "Signal":[], "All":[]}
-    self.df2 = {"Raw F_{F}":[], "Alternative F_{F}":[], "Correction":[], "Signal":[], "All":[]}
-    self.model = {"Raw F_{F}":None, "Alternative F_{F}":None, "Correction":None, "Signal":None, "All":None}
+    self.df1 = {"C":[], "D":[], "B":[], "Signal":[], "All":[]}
+    self.df2 = {"C":[], "D":[], "B":[], "Signal":[], "All":[]}
+    self.model = {"C":None, "D":None, "B":None, "Signal":None, "All":None}
 
   def AddDataframes(self,df1, df2, name):
-    if name not in ["Raw F_{F}","Alternative F_{F}","Correction","Signal","All"]:
-      print "ERROR: Invalid name given. Please give Raw, Alternative, Correction or Signal"
+    if name not in ["C","D","B","Signal","All"]:
+      print "ERROR: Invalid name given. Please give Raw, Alternative, B or Signal"
     else:
       if df1 != None:
         self.df1[name].append(copy.deepcopy(df1))
@@ -32,18 +32,18 @@ class ff_ml():
         if not name == "Signal": self.df2["All"].append(copy.deepcopy(df2))
 
   def AddModel(self,model,name):
-    if name not in ["Raw F_{F}","Alternative F_{F}","Correction","Signal","All"]:
-      print "ERROR: Invalid name given. Please give Raw, Alternative, Correction or Signal"
+    if name not in ["C","D","B","Signal","All"]:
+      print "ERROR: Invalid name given. Please give Raw, Alternative, B or Signal"
     else:
       self.model[name] = copy.deepcopy(model)
       if name == "All":
-        self.model["Raw F_{F}"] = model
-        self.model["Alternative F_{F}"] = model
-        self.model["Correction"] = model
+        self.model["C"] = model
+        self.model["D"] = model
+        self.model["B"] = model
 
   def GetDataframes(self,name,data_type=None,with_reweights=False,full=False,variables="all",all_mode=False,return_specific=None):
-    if name not in ["Raw F_{F}","Alternative F_{F}","Correction","Signal","All"]:
-      print "ERROR: Invalid name given. Please give Raw, Alternative, Correction or Signal"
+    if name not in ["C","D","B","Signal","All"]:
+      print "ERROR: Invalid name given. Please give Raw, Alternative, B or Signal"
     else:
 
       if return_specific == None or return_specific == 1:
@@ -87,13 +87,13 @@ class ff_ml():
       if return_specific == None or return_specific == 2: X_df2, wt_df2 = df2.SplitXWts()
 
     if (return_specific == None or return_specific == 1):
-      if name == "Correction" and not all_mode:
-        wt_df1 = np.multiply(wt_df1,self.model["Alternative F_{F}"].predict_reweights(X_df1.loc[:,list(self.model["Alternative F_{F}"].column_names)],cap_at=None))
+      if name == "B" and not all_mode:
+        wt_df1 = np.multiply(wt_df1,self.model["D"].predict_reweights(X_df1.loc[:,list(self.model["D"].column_names)],cap_at=None))
 
       if with_reweights:
         if name == "Signal" and not all_mode:
-          wt_df1 = np.multiply(np.multiply(wt_df1,self.model["Raw F_{F}"].predict_reweights(X_df1.loc[:,list(self.model["Raw F_{F}"].column_names)],cap_at=None)),self.model["Correction"].predict_reweights(X_df1))
-        elif name == "Correction" and not all_mode:
+          wt_df1 = np.multiply(np.multiply(wt_df1,self.model["C"].predict_reweights(X_df1.loc[:,list(self.model["C"].column_names)],cap_at=None)),self.model["B"].predict_reweights(X_df1))
+        elif name == "B" and not all_mode:
           wt_df1 = np.multiply(wt_df1,self.model[name].predict_reweights(X_df1.loc[:,list(self.model[name].column_names)]))
         else:
           #wt_df1 = np.multiply(wt_df1,self.model[name].predict_reweights(X_df1.loc[:,list(self.model[name].column_names)],cap_at=1))
@@ -162,7 +162,8 @@ class ff_ml():
           if h.GetBinError(i) != 0 and h.GetBinContent(i)-h.GetBinError(i) < minimum: minimum = h.GetBinContent(i)-h.GetBinError(i)
           if h.GetBinError(i) != 0 and h.GetBinContent(i)+h.GetBinError(i) > maximum: maximum = h.GetBinContent(i)+h.GetBinError(i)
 
-      hists[0].SetMinimum(0.8*minimum)
+      #hists[0].SetMinimum(0.8*minimum)
+      hists[0].SetMinimum(0)
       hists[0].SetMaximum(1.4*maximum) # for legend
 
       for ind,h in enumerate(hists[1:]):
@@ -189,7 +190,7 @@ class ff_ml():
 
       del pad_rwt, c_rwt
 
-  def PlotClosuresFromHistograms(self, var_name, pass_hist, fail_hists, pass_hist_legend, legend_names, title_left="", title_right="", logx=[], logy=[], rebin=True, BinThreshold=100, BinUncertFraction=0.5, colours=[2,6,42,46,39,49], plot_name=""):
+  def PlotClosuresFromHistograms(self, var_name, pass_hist, fail_hists, pass_hist_legend, legend_names, title_left="", title_right="", logx=[], logy=[], rebin=True, BinThreshold=100, BinUncertFraction=0.5, colours=[2,6,42,46,39,49], plot_name="",text=""):
 
       if rebin:
         for ind1, h1 in enumerate(fail_hists):
@@ -270,6 +271,7 @@ class ff_ml():
           if h.GetBinError(i) != 0 and h.GetBinContent(i)+h.GetBinError(i) > maximum: maximum = h.GetBinContent(i)+h.GetBinError(i)
 
       fail_hists[0].SetMaximum(1.6*maximum) # for legend
+      fail_hists[0].GetYaxis().SetRangeUser(0,1.6*maximum)
 
       l = ROOT.TLegend(0.5,0.55,0.88,0.85);
       l.SetBorderSize(0)
@@ -280,6 +282,14 @@ class ff_ml():
       l.Draw()
 
       #print "#chi^{2}/N_{dof} =", pass_hist.Chi2Test(fail_hists[0],"CHI2/NDF")
+
+      latex = ROOT.TLatex()
+      latex.SetNDC()
+      latex.SetTextAngle(0)
+      latex.SetTextColor(ROOT.kBlack)
+      latex.SetTextAlign(11)
+      latex.SetTextSize(0.06)
+      latex.DrawLatex(0.18,0.80,text)
 
       c_clos.cd()
       pad2 = ROOT.TPad("pad2","pad2",0,0.05,1,0.35)
@@ -347,7 +357,23 @@ class ff_ml():
       del pad1, pad2, c_clos
       gc.collect()
 
-  def PlotReweightsAndClosure(self, var, binnings, name, sel, data_type=None, title_left="", title_right="", logx=[], logy=[], compare_other_rwt=[], flat_rwt=False, plot_name="", BinThreshold=100, BinUncertFraction=0.5):
+  def FindBinning(self,df,col,n_bins=20,ignore_quantile=0.01,frac_to_keep=0.4):
+    if len(df.loc[:,col].unique()) > n_bins: # continuous
+      quant_down = df.loc[:,col].quantile(ignore_quantile)
+      quant_up = df.loc[:,col].quantile(1-ignore_quantile)
+      min_val = df.loc[:,col].min()
+      max_val = df.loc[:,col].max()
+      if ((1+frac_to_keep)*(quant_up - quant_down)) > (quant_up - min_val): quant_down = min_val 
+      if ((1+frac_to_keep)*(quant_up - quant_down)) > (max_val - quant_down): 
+        quant_up = max_val
+
+      bins = list(np.linspace(quant_down,quant_up,n_bins))
+    else:
+      bins = list(np.linspace(df.loc[:,col].min(),df.loc[:,col].max()+1,int(df.loc[:,col].max()-df.loc[:,col].min())+2))
+    return bins
+
+
+  def PlotReweightsAndClosure(self, name, sel, data_type=None, title_left="", title_right="", logx=[], logy=[], compare_other_rwt=[], flat_rwt=False, plot_name="", BinThreshold=100, BinUncertFraction=0.5):
 
     ROOT.gROOT.SetBatch(ROOT.kTRUE)
     ROOT.TGaxis.SetExponentOffset(-0.06, 0.01, "y");
@@ -355,12 +381,19 @@ class ff_ml():
     if type(compare_other_rwt) == str: compare_other_rwt = [compare_other_rwt]
    
     if name == "All":
-      loop_over = ["Raw F_{F}","Alternative F_{F}","Correction"]
+      loop_over = ["B","C","D"]
     else:
       loop_over = [name]
 
     ttree_pass = {}
     ttree_fail = {}
+ 
+    # Get binning
+    df1,_,df2,_ = self.GetDataframes("All",data_type=data_type)
+    df = pd.concat([df1,df2], ignore_index=True, sort=False)
+    var = list(df.columns)
+    binnings = [self.FindBinning(df,i) for i in var]
+
     for n in loop_over:
       
       # make dataframe fail
@@ -376,18 +409,19 @@ class ff_ml():
 
       wt_df1 = df.loc[:,"weights"]
       X_df1 = df.drop(["weights"],axis=1)
+
       var_df = X_df1.loc[:,list(set(var+compare_other_rwt))]
 
       df1 = pd.concat([wt_df1,var_df],axis=1)
 
-      if name == "Correction":
+      if name == "B":
         df1.loc[:,"reweights"] = self.model[name].predict_reweights(X_df1.loc[:,list(self.model[name].column_names)])
       else:
         df1.loc[:,"reweights"] = self.model[name].predict_reweights(X_df1.loc[:,list(self.model[name].column_names)],cap_at=None)
 
       # load to root ttree pass
       df_write = Dataframe()
-      df_write.dataframe = df1 
+      df_write.dataframe = df1
       ttree_fail[n] = df_write.WriteToRoot(None,key='ntuple',return_tree=True)
 
       del df_write, df1, wt_df1, X_df1, var_df, df
@@ -410,7 +444,7 @@ class ff_ml():
 
       df1 = pd.concat([wt_df1,var_df],axis=1)
 
-      if name == "Correction":
+      if name == "B":
         df1.loc[:,"reweights"] = self.model[name].predict_reweights(X_df1.loc[:,list(self.model[name].column_names)])
       else:
         df1.loc[:,"reweights"] = self.model[name].predict_reweights(X_df1.loc[:,list(self.model[name].column_names)],cap_at=None)
@@ -423,9 +457,9 @@ class ff_ml():
       del df_write, df1, wt_df1, X_df1, var_df, df
       gc.collect()
 
+    var = [i.replace("(","_").replace("*","_times_").replace("/","_divide_").replace(")","") for i in var]
     # loop through variables
     for var_ind, var_name in enumerate(var):
-
       ### Reweight Plots ###
 
       var_binning = binnings[var_ind]
@@ -450,7 +484,7 @@ class ff_ml():
         hist1[indh].SetDirectory(ROOT.gROOT)
         ttree_fail[nh].Draw('%(var_name)s>>hist1_%(indh)i' % vars(),'weights*(1)','goff')
         hist1[indh] = ttree_fail[nh].GetHistogram()
-
+ 
         hist2[indh].SetDirectory(ROOT.gROOT)
         ttree_fail[nh].Draw('%(var_name)s>>hist2_%(indh)i' % vars(),'weights*reweights*(1)','goff')
         hist2[indh] = ttree_fail[nh].GetHistogram()
@@ -461,14 +495,15 @@ class ff_ml():
         hist3[ind].SetName('hist3_%(val)s' % vars())
  
         hist3[ind].SetDirectory(ROOT.gROOT)
-        ttree_fail["Raw F_{F}"].Draw('%(var_name)s>>hist3_%(val)s' % vars(),'weights*%(val)s*(1)' % vars(),'goff')
-        hist3[ind] = ttree_fail["Raw F_{F}"].GetHistogram()
+        ttree_fail["C"].Draw('%(var_name)s>>hist3_%(val)s' % vars(),'weights*%(val)s*(1)' % vars(),'goff')
+        hist3[ind] = ttree_fail["C"].GetHistogram()
         hist1.append(copy.deepcopy(hist1[0]))
 
       non_zero_bins = 0
       for i in range(0,hist1[0].GetNbinsX()+1):
         if hist1[0].GetBinContent(i)>0.0: non_zero_bins += 1
       rebin = (non_zero_bins > 10) 
+      if "deepTau" in var_name: rebin = False
 
       self.PlotReweightsFromHistograms(var_name, hist2+hist3, hist1, loop_over+compare_other_rwt, title_left=title_left, title_right=title_right, logx=logx, logy=logy, rebin=rebin, BinThreshold=BinThreshold, BinUncertFraction=BinUncertFraction, plot_name=plot_name)
 
@@ -479,7 +514,7 @@ class ff_ml():
         hist2 = hout.Clone()
         hist2.SetName('hist2')
         hist3 = []
-        if n == "Raw F_{F}":
+        if n == "C":
           for ind,val in enumerate(compare_other_rwt):
             hist3.append(hout.Clone())
             hist3[ind].SetName('hist3_%(val)s' % vars())
@@ -499,7 +534,9 @@ class ff_ml():
         ttree_fail[n].Draw('%(var_name)s>>hist2' % vars(),'weights*reweights*(1)','goff')
         hist2 = ttree_fail[n].GetHistogram()
 
-        if n == "Raw F_{F}":
+        hist4_add = []
+        leg_list = []
+        if n == "C":
           for ind,val in enumerate(compare_other_rwt):
             hist3[ind].SetDirectory(ROOT.gROOT)
             ttree_fail[n].Draw('%(var_name)s>>hist3_%(val)s' % vars(),'weights*%(val)s*(1)' % vars(),'goff')
@@ -509,12 +546,38 @@ class ff_ml():
           hist4.SetDirectory(ROOT.gROOT)
           ttree_fail[n].Draw('%(var_name)s>>hist4' % vars(),'weights*%(norm_wt)s*(1)' % vars(),'goff')
           hist4 = ttree_fail[n].GetHistogram()
-          if n == "Raw F_{F}": leg_list = compare_other_rwt + ["Norm"]
+          if n == "C": leg_list = compare_other_rwt + ["Norm"]
           else: leg_list = ["Norm"]
+          hist4_add = [hist4]
         if name == "All":
           closure_name = plot_name+"_"+n.lower().replace(" ","_").replace("_{","").replace("}","")
         else:
           closure_name = plot_name
-        self.PlotClosuresFromHistograms(var_name, hist1, [hist2]+hist3+[hist4], "Pass", ["BDT F_{F}"]+leg_list, title_left=title_left, title_right=title_right, logx=logx, logy=logy, rebin=rebin, BinThreshold=BinThreshold, BinUncertFraction=BinUncertFraction, plot_name=closure_name)
+        self.PlotClosuresFromHistograms(var_name, hist1, [hist2]+hist3+hist4_add, "Pass", ["BDT F_{F}"]+leg_list, title_left=title_left, title_right=title_right, logx=logx, logy=logy, rebin=rebin, BinThreshold=BinThreshold, BinUncertFraction=BinUncertFraction, plot_name=closure_name, text="Region "+n)
 
+      if name == "All":
+        # Do combined closure plot
+        hist1_total = hout.Clone()
+        hist1_total.SetName('hist1_total')
+        hist2_total = hout.Clone()
+        hist2_total.SetName('hist2_total')
+        for n in loop_over:
+          hist1_temp = hout.Clone()
+          hist1_temp.SetName('hist1_temp')
+          hist2_temp = hout.Clone()
+          hist2_temp.SetName('hist2_temp')
+          if n in ttree_pass:
+            hist1_temp.SetDirectory(ROOT.gROOT)
+            ttree_pass[n].Draw('%(var_name)s>>hist1_temp' % vars(),'weights*(1)','goff')
+            hist1_temp = ttree_pass[n].GetHistogram()
+            hist1_total.Add(hist1_temp)
+          if n in ttree_fail:
+            hist2_temp.SetDirectory(ROOT.gROOT)
+            ttree_fail[n].Draw('%(var_name)s>>hist2_temp' % vars(),'weights*reweights*(1)','goff')
+            hist2_temp = ttree_fail[n].GetHistogram()
+            hist2_total.Add(hist2_temp)
+        closure_name = plot_name+"_all"
+        self.PlotClosuresFromHistograms(var_name, hist1_total, [hist2_total], "Pass", ["BDT F_{F}"], title_left=title_left, title_right=title_right, logx=logx, logy=logy, rebin=rebin, BinThreshold=BinThreshold, BinUncertFraction=BinUncertFraction, plot_name=closure_name, text="Regions B, C and D")
+
+      
 

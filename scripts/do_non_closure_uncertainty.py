@@ -1,5 +1,5 @@
 from UserCode.BDTFakeFactors.Dataframe import Dataframe
-from UserCode.BDTFakeFactors.ff_ml_new import ff_ml
+from UserCode.BDTFakeFactors.ff_ml import ff_ml
 from UserCode.BDTFakeFactors.functions import PrintDatasetSummary, MakeSelFromList, MakeSelDict
 from UserCode.BDTFakeFactors.batch import CreateBatchJob,SubmitBatchJob
 from UserCode.BDTFakeFactors import reweighter
@@ -39,7 +39,7 @@ if args.batch:
       cmd += " --{}".format(a)
     elif getattr(args, a) != False and getattr(args, a) != None:
       cmd += " --{}={}".format(a,getattr(args, a))
-  name = "reweighting_job_{}".format(data["channel"])
+  name = "non_closure_job_{}".format(data["channel"])
   cmssw_base = os.getcwd().replace('src/UserCode/BDTFakeFactors','')
   CreateBatchJob("jobs/"+name+".sh",cmssw_base,[cmd])
   #SubmitBatchJob("jobs/"+name+".sh",time=300)
