@@ -1,6 +1,6 @@
 from UserCode.BDTFakeFactors.Dataframe import Dataframe
 from UserCode.BDTFakeFactors.ff_ml import ff_ml
-from UserCode.BDTFakeFactors.functions import PrintDatasetSummary
+from UserCode.BDTFakeFactors.functions import PrintDatasetSummary,EqualBinStats
 from UserCode.BDTFakeFactors.batch import CreateBatchJob,SubmitBatchJob
 from UserCode.BDTFakeFactors import reweighter
 from collections import OrderedDict
@@ -126,6 +126,16 @@ if not args.load_models:
       rwter.set_params(params)
 
     print "<< Running reweighting training for >>"
+
+    if "equal_stat_bins" in data:
+      rwter.wt_function = EqualBinStats(train_pass,
+                                        wt_train_pass,data["equal_stat_bins"]["col"],
+                                        ignore_quantile=data["equal_stat_bins"]["ignore_quantile"],
+                                        n_bins=data["equal_stat_bins"]["n_bins"],
+                                        min_bin=data["equal_stat_bins"]["min_bin"],
+                                        max_bin=data["equal_stat_bins"]["max_bin"])
+      rwter.wt_function_var = data["equal_stat_bins"]["col"]
+
     rwter.norm_and_fit(train_fail, train_pass, wt_train_fail ,wt_train_pass)
 
   if not args.scan_batch: pkl.dump(rwter,open("BDTs/{}/ff_{}.pkl".format(data["channel"],model_name), "wb"))

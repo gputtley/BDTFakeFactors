@@ -174,7 +174,7 @@ for small_tree in tree.iterate(entrysteps=int(args.splitting)):
         df.dataframe.loc[:,key+"_q_sum_up"] = q_sum_uncert.loc[:,"up"]
         df.dataframe.loc[:,key+"_q_sum_down"] = q_sum_uncert.loc[:,"down"]
         iso_features = [x for x in new_df.dataframe.columns if "deepTauVsJets_iso_" in x]
-        iso_uncert = SampleValuesAndGiveLargestShift(copy.deepcopy(new_df.dataframe),xgb_model,iso_features,[[0.1,1.0]]*len(iso_features),[[0.1,1.0]]*len(iso_features),continuous=True,n_samples=50)
+        iso_uncert = SampleValuesAndGiveLargestShift(copy.deepcopy(new_df.dataframe),xgb_model,iso_features,[[0.1,1.0]]*len(iso_features),[[0.1,1.0]]*len(iso_features),continuous=True,n_samples=10)
         df.dataframe.loc[:,key+"_iso_up"] = iso_uncert.loc[:,"up"]
         df.dataframe.loc[:,key+"_iso_down"] = iso_uncert.loc[:,"down"]
 

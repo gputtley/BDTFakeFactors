@@ -99,8 +99,8 @@ for col in test_fail.columns:
 
   if "weights" in col: continue
 
-  n_bins = 20
-  ignore_quantile = 0.01
+  n_bins = 100
+  ignore_quantile = 0.001
 
   var_name = col.replace("(","_").replace("*","_times_").replace("/","_divide_").replace(")","")
 
@@ -133,9 +133,9 @@ for col in test_fail.columns:
   ttree_pass.Draw('%(var_name)s>>hist_pass' % vars(),'weights*(1)','goff')
   hist_pass = ttree_pass.GetHistogram()
 
-  binning = FindRebinning(hist_fail,BinThreshold=100,BinUncertFraction=0.5)
+  binning = FindRebinning(hist_fail,BinThreshold=100,BinUncertFraction=0.1)
   hist_pass = RebinHist(hist_pass,binning)
-  binning = FindRebinning(hist_pass,BinThreshold=100,BinUncertFraction=0.5)
+  binning = FindRebinning(hist_pass,BinThreshold=100,BinUncertFraction=0.1)
   hist_pass = RebinHist(hist_pass,binning)
   hist_fail = RebinHist(hist_fail,binning)
 

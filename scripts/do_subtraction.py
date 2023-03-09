@@ -1,5 +1,5 @@
 from UserCode.BDTFakeFactors.Dataframe import Dataframe
-from UserCode.BDTFakeFactors.functions import PrintDatasetSummary
+from UserCode.BDTFakeFactors.functions import PrintDatasetSummary, GetNonZeroMinimum
 from UserCode.BDTFakeFactors.batch import CreateBatchJob,SubmitBatchJob
 from UserCode.BDTFakeFactors.plotting import FindRebinning, RebinHist, ReplaceName, DrawTitle, DrawDistributions
 from collections import OrderedDict
@@ -318,12 +318,28 @@ for pf in ["pass","fail"]:
       pad2.Draw()
       pad2.cd()
 
+      max_ratio = max(hist3_hist1_ratio.GetMaximum(),hist2_hist1_ratio.GetMaximum())
+      min_ratio = min(hist3_hist1_ratio.GetMinimum(),hist2_hist1_ratio.GetMinimum())
+      possible_max = [1.05,1.1,1.2,1.4,1.6,1.8,2.0,3.0,4.0,5.0,10.0]
+      possible_min = [0.95,0.9,0.8,0.6,0.4,0.2,0.0]
+      max_ratio = min(possible_max, key=lambda x:abs(x-max_ratio))
+      min_ratio = min(possible_min, key=lambda x:abs(x-min_ratio))
+      if min_ratio == 0.0: min_ratio = max(2 - max_ratio,0)
+
+      orig_max_ratio = max([i.GetMaximum() for i in [hist3_hist1_ratio,hist2_hist1_ratio]])
+      orig_min_ratio = min([GetNonZeroMinimum(i) for i in [hist3_hist1_ratio,hist2_hist1_ratio]])
+      largest_shift = max(orig_max_ratio,2-orig_min_ratio)
+      possible_max = [1.05,1.1,1.2,1.4,1.6,1.8,2.0,3.0,4.0,5.0,10.0]
+      max_ratio = min(possible_max, key=lambda x:((x>largest_shift)*abs(x-largest_shift)) + ((x<=largest_shift)*9999))
+      min_ratio = max(2 - max_ratio,0)
+
+
       ratio_line = ROOT.TLine(hist1.GetBinLowEdge(1),1,hist1.GetBinLowEdge(hist1.GetNbinsX()+1),1)
       hist1_hist1_ratio.SetTitle("")
       hist1_hist1_ratio.SetMarkerSize(0)
       hist1_hist1_ratio.SetFillColorAlpha(12,0.5)
       hist1_hist1_ratio.SetLineWidth(0)
-      hist1_hist1_ratio.SetAxisRange(0.6,1.4,'Y')
+      hist1_hist1_ratio.SetAxisRange(min_ratio,max_ratio,'Y')
       hist1_hist1_ratio.GetYaxis().SetNdivisions(4)
       hist1_hist1_ratio.SetStats(0)
       hist1_hist1_ratio.GetXaxis().SetLabelSize(0.1)
@@ -347,8 +363,8 @@ for pf in ["pass","fail"]:
       hist3_hist1_ratio.SetLineColor(2)
       hist3_hist1_ratio.SetMarkerStyle(2)
 
-      ratio_line_up = ROOT.TLine(hist1.GetBinLowEdge(1),1.2,hist1.GetBinLowEdge(hist1.GetNbinsX()+1),1.2)
-      ratio_line_down = ROOT.TLine(hist1.GetBinLowEdge(1),0.8,hist1.GetBinLowEdge(hist1.GetNbinsX()+1),0.8)
+      ratio_line_up = ROOT.TLine(hist1.GetBinLowEdge(1),(1+max_ratio)/2,hist1.GetBinLowEdge(hist1.GetNbinsX()+1),(1+max_ratio)/2)
+      ratio_line_down = ROOT.TLine(hist1.GetBinLowEdge(1),(1+min_ratio)/2,hist1.GetBinLowEdge(hist1.GetNbinsX()+1),(1+min_ratio)/2)
       ratio_line.SetLineStyle(3)
       ratio_line_up.SetLineStyle(3)
       ratio_line_down.SetLineStyle(3)

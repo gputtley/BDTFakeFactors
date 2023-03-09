@@ -2,6 +2,7 @@ from UserCode.BDTFakeFactors import reweighter
 from UserCode.BDTFakeFactors.Dataframe import Dataframe
 #from UserCode.BDTFakeFactors.plotting import DrawClosurePlots, DrawColzReweightPlots, DrawAverageReweightPlots, FindRebinning, RebinHist, ReplaceName
 from UserCode.BDTFakeFactors.plotting import FindRebinning, RebinHist, ReplaceName, DrawTitle
+from UserCode.BDTFakeFactors.functions import GetNonZeroMinimum
 import copy
 import pandas as pd
 import numpy as np
@@ -157,8 +158,8 @@ class ff_ml():
 
       minimum = 999999.0
       maximum = 0.0
-      for ind, h in enumerate(hists): 
-        for i in range(0,h.GetNbinsX()+2):
+      for ind, h in enumerate(hists):
+        for i in range(0,h.GetNbinsX()+1):
           if h.GetBinError(i) != 0 and h.GetBinContent(i)-h.GetBinError(i) < minimum: minimum = h.GetBinContent(i)-h.GetBinError(i)
           if h.GetBinError(i) != 0 and h.GetBinContent(i)+h.GetBinError(i) > maximum: maximum = h.GetBinContent(i)+h.GetBinError(i)
 
@@ -300,12 +301,19 @@ class ff_ml():
       pad2.Draw()
       pad2.cd()
 
+      orig_max_ratio = max([i.GetMaximum() for i in pass_hist_fail_hists_ratio+[pass_hist_ratio]])
+      orig_min_ratio = min([GetNonZeroMinimum(i) for i in pass_hist_fail_hists_ratio+[pass_hist_ratio]])
+      largest_shift = max(orig_max_ratio,2-orig_min_ratio)
+      possible_max = [1.05,1.1,1.2,1.4,1.6,1.8,2.0,3.0,4.0,5.0,10.0]
+      max_ratio = min(possible_max, key=lambda x:((x>largest_shift)*abs(x-largest_shift)) + ((x<=largest_shift)*9999))
+      min_ratio = max(2 - max_ratio,0)
+
       ratio_line = ROOT.TLine(pass_hist.GetBinLowEdge(1),1,pass_hist.GetBinLowEdge(pass_hist.GetNbinsX()+1),1)
       pass_hist_ratio.SetTitle("")
       pass_hist_ratio.SetMarkerSize(0)
       pass_hist_ratio.SetFillColorAlpha(12,0.5)
       pass_hist_ratio.SetLineWidth(0)
-      pass_hist_ratio.SetAxisRange(0,2,'Y')
+      pass_hist_ratio.SetAxisRange(min_ratio,max_ratio,'Y')
       pass_hist_ratio.GetYaxis().SetNdivisions(4)
       pass_hist_ratio.SetStats(0)
       pass_hist_ratio.GetXaxis().SetLabelSize(0.1)
@@ -330,8 +338,8 @@ class ff_ml():
         pass_hist_fail_hists_ratio[ind+1].SetMarkerColor(colours[ind])
         pass_hist_fail_hists_ratio[ind+1].SetMarkerStyle(2)
 
-      ratio_line_up = ROOT.TLine(pass_hist.GetBinLowEdge(1),1.5,pass_hist.GetBinLowEdge(pass_hist.GetNbinsX()+1),1.5)
-      ratio_line_down = ROOT.TLine(pass_hist.GetBinLowEdge(1),0.5,pass_hist.GetBinLowEdge(pass_hist.GetNbinsX()+1),0.5)
+      ratio_line_up = ROOT.TLine(pass_hist.GetBinLowEdge(1),(1+max_ratio)/2,pass_hist.GetBinLowEdge(pass_hist.GetNbinsX()+1),(1+max_ratio)/2)
+      ratio_line_down = ROOT.TLine(pass_hist.GetBinLowEdge(1),(1+min_ratio)/2,pass_hist.GetBinLowEdge(pass_hist.GetNbinsX()+1),(1+min_ratio)/2)
       ratio_line.SetLineStyle(3)
       ratio_line_up.SetLineStyle(3)
       ratio_line_down.SetLineStyle(3)
@@ -357,7 +365,7 @@ class ff_ml():
       del pad1, pad2, c_clos
       gc.collect()
 
-  def FindBinning(self,df,col,n_bins=20,ignore_quantile=0.01,frac_to_keep=0.4):
+  def FindBinning(self,df,col,n_bins=20,ignore_quantile=0.001,frac_to_keep=0.4):
     if len(df.loc[:,col].unique()) > n_bins: # continuous
       quant_down = df.loc[:,col].quantile(ignore_quantile)
       quant_up = df.loc[:,col].quantile(1-ignore_quantile)

@@ -535,7 +535,7 @@ def ReplaceName(name):
     "deepTauVsJets_iso_3": "Alt #tau_{2} DeepTauVsJets Score",
     "deepTauVsJets_iso_4": "Alt #tau_{3} DeepTauVsJets Score",
     "eta_1": "#eta",
-    "jet_pt_1_divide_pt_1": "Tau-p_{T} / jet-p_{T}",
+    "jet_pt_1_divide_pt_1": "Jet-p_{T} / Tau-p_{T}",
     "mt_1": "m_{T} (GeV)",
     "n_jets": "N_{jets}",
     "n_bjets": "N_{b-jets}",

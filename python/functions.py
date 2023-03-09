@@ -4,6 +4,49 @@ import numpy as np
 import copy
 import json
 
+def GetNonZeroMinimum(hist):
+  no_min = True
+  for i in range(0,hist.GetNbinsX()+1):
+    bc = hist.GetBinContent(i)
+    if no_min and bc != 0: 
+      min_bin = bc*1.0
+      no_min = False
+    elif not no_min and bc != 0:
+      if bc < min_bin:
+        min_bin = bc*1.0
+  if no_min: min_bin = 0.0
+  return min_bin
+
+
+
+def EqualBinStats(dataframe,weights,col,n_bins=20,min_bin=None,max_bin=None,ignore_quantile=0.0):
+  df = copy.deepcopy(dataframe)
+  df.loc[:,"weight"] = weights
+  if len(df.loc[:,col].unique()) > n_bins: # continuous
+    quant_down = df.loc[:,col].quantile(ignore_quantile)
+    quant_up = df.loc[:,col].quantile(1-ignore_quantile)
+    if max_bin == None:
+      end = quant_up
+    else:
+      end = min(max_bin,quant_up)
+
+    if min_bin == None:
+      start = quant_down
+    else:
+      start = max(min_bin,quant_down)
+
+    bins = list(np.linspace(start,end,n_bins))
+  else:
+    bins = sorted(df.loc[:,col].unique())
+    bins.append(2*bins[-1]-bins[-2])
+
+  bin_weight_sum =  [df.loc[((df.loc[:,col]>=bins[i])&(df.loc[:,col]>=bins[i+1])),"weight"].sum() for i in range(0,len(bins)-1)]
+  scale_by = [max(bin_weight_sum)/i for i in bin_weight_sum]
+  bins[-1] = "999999"
+  bins[0] = "-999999"
+  join_str = ["(((x>={}) * (x<{})) * ({}))".format(bins[i],bins[i+1],scale_by[i]) for i in range(0,len(bins)-1)]
+  return " + ".join(join_str)
+
 def PrintDatasetSummary(name,dataset):
   print name
   print dataset.head(10)
@@ -123,11 +166,13 @@ def GetNonClosureLargestShift(df,json_file,reweights):
     exec("uncert_df.loc[:,k] = df.iloc[:,i].apply(lambda x: {})").format(v)
     i += 1
   max_uncert = uncert_df.max(numeric_only = True, axis = 1)
+  #print pd.concat([uncert_df,max_uncert],axis=1)
   max_uncert = max_uncert * reweights
   return_df = pd.DataFrame()
   return_df.loc[:,"up"] = reweights + max_uncert
   return_df.loc[:,"down"] = reweights - max_uncert
   return_df.loc[(return_df.loc[:,"down"]<0),"down"] = 0.0
   return_df.loc[(return_df.loc[:,"up"]<0),"up"] = 0.0
+  
   print "Non Closure Average Shift:", (return_df.loc[:,"up"].sum()/reweights.sum())
   return return_df

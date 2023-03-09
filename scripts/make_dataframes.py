@@ -102,8 +102,6 @@ for ind, obj in enumerate(data["channel"]):
   sels["data"]["pass_D"] = "(({})==1) && (({})==0) && (({})==0)".format(pass_sel, or_sideband, or_alt_sideband)
   sels["data"]["fail_D"] = "(({})==0) && (({})==0) && (({})==0)".format(pass_sel, or_sideband, or_alt_sideband)
 
-  print sels
-
   for k, v in sels["data"].items():
     sels["mc"]["fake_"+k] = "(({})==1) && {}".format(data["mc_gen_match"].replace("NUM",str(ind+1)),v)
     sels["mc"]["other_"+k] = "(({})==0) && {}".format(data["mc_gen_match"].replace("NUM",str(ind+1)),v)
@@ -112,7 +110,7 @@ for ind, obj in enumerate(data["channel"]):
   for dm in ["data","mc"]:
     for k, v in sels[dm].items():
       if offset == args.offset or args.offset == None:
-        json_file = {"add_sel":{},"file_location":data["file_location"],"lumi":1,"weights":data["mc_weight"],"baseline_sel":"(("+v+") && ("+data["baseline_selection"]+"))"}
+        json_file = {"add_sel":{},"file_location":data["file_location"],"lumi":1,"weights":data["mc_weight"]}
 
         if dm == "data":
           json_file["data"] = 1
@@ -127,6 +125,12 @@ for ind, obj in enumerate(data["channel"]):
             json_file["add_sel"][data["channel"]+"_"+yr]["weight"] = data["years_and_lumi"][yr]
             json_file["add_sel"][data["channel"]+"_"+yr]["params_file"] = data["param_file"].replace("YEAR",yr)
 
+          if "years_and_baseline_selection" in data:
+            json_file["baseline_sel"] = "(1)"
+            json_file["add_sel"][data["channel"]+"_"+yr]["sel"] = "(("+v+")&&("+data["years_and_baseline_selection"]+"))"
+          else:
+            json_file["baseline_sel"] = "(("+v+")&&("+data["baseline_selection"]+"))"
+         
         df = Dataframe()
         df.LoadRootFilesFromJson(json_file,variables,quiet=(args.verbosity<2))
         df.RenumberColumns(ind+1)

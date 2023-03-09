@@ -229,3 +229,9 @@ variables:
   - "q_sum"
   - "deepTauVsJets_iso_ALT"
   - "YEAR"
+#equal_stat_bins:
+#  "col": "pt_1"
+#  "min_bin": 60
+#  "max_bin": 200
+#  "n_bins": 14
+#  "ignore_quantile": 0.0

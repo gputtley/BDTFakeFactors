@@ -27,8 +27,18 @@ class reweighter(GBReweighter):
     self.initial_normalization = 1.0
     self.column_names = []
     self.KS_value = None
+    self.wt_function = None
+    self.wt_function_var = None
+
 
   def norm_and_fit(self, original, target, original_weight, target_weight, cap_at=None):
+
+    if self.wt_function != None and self.wt_function_var != None:
+      print "Using weight scaling function for variable {}:".format(self.wt_function_var)
+      print self.wt_function
+      original_weight *= original.loc[:,self.wt_function_var].apply(lambda x: eval(self.wt_function))
+      target_weight *= target.loc[:,self.wt_function_var].apply(lambda x: eval(self.wt_function))
+
     self.column_names = original.keys()
     self.normalization = target_weight.sum()/original_weight.sum()
     self.initial_normalization = target_weight.sum()/original_weight.sum()
