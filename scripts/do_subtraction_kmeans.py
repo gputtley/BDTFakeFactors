@@ -4,6 +4,8 @@ from UserCode.BDTFakeFactors.batch import CreateBatchJob,SubmitBatchJob
 from UserCode.BDTFakeFactors.plotting import FindRebinning, RebinHist, ReplaceName, DrawTitle, DrawDistributions
 from collections import OrderedDict
 from array import array
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
 import argparse
 import pickle as pkl
 import pandas as pd
@@ -11,7 +13,6 @@ import numpy as np
 import itertools
 import os
 import json
-import xgboost as xgb
 import ROOT
 import copy
 import yaml
@@ -73,101 +74,104 @@ if not os.path.isdir("dataframes/{}/subtracted_fail".format(data["channel"])): o
 #for pf in ["pass","fail"]:
 for pf in ["pass"]:
 
+  print "<< Doing {} >>".format(pf)
+
+  print "<< Loading Dataframes >>"
+
+  fdir = "dataframes/{}/mc_other_{}".format(data["channel"],pf)
+  for ind, val in enumerate(os.listdir(fdir)):
+    temp_df = pd.read_pickle(fdir+"/"+val)
+    if ind == 0:
+      mc_df = Dataframe()
+      mc_df.dataframe = copy.deepcopy(temp_df)
+    else:
+      mc_df.dataframe = pd.concat([temp_df,mc_df.dataframe], ignore_index=True, sort=False)
+
+  X, wt = mc_df.SplitXWts()
+
+  scaler = StandardScaler()
+  scaled_features = scaler.fit_transform(X)
+
   if not args.load_models:
 
-    print "<< Doing {} >>".format(pf)
-
-    print "<< Loading Dataframes >>"
-    ind = 0
-    for ft in ["fake","other"]:
-      fdir = "dataframes/{}/mc_{}_{}".format(data["channel"],ft,pf)
-      for val in os.listdir(fdir):
-        temp_df = pd.read_pickle(fdir+"/"+val)
-        temp_df.loc[:,"y"] = int(ft=="fake")
-        if ind == 0:
-          mc_df = Dataframe()
-          mc_df.dataframe = copy.deepcopy(temp_df)
-        else:
-          mc_df.dataframe = pd.concat([temp_df,mc_df.dataframe], ignore_index=True, sort=False)
-        ind += 1
-          
     print "<< Running Training >>"
 
-    mc_df.NormaliseWeightsInCategory("y", [0,1], column="weights")
-    X, y, wt = mc_df.SplitXyWts()
+    model = KMeans(init="k-means++",n_clusters=200,max_iter=300,random_state=42)
+    model.fit(scaled_features,sample_weight=wt)
+    #model.fit(scaled_features)
 
-    xgb_model = xgb.XGBClassifier()
-    #xgb_model = xgb.XGBClassifier(max_depth=10,n_estimators=500)
-    xgb_model.fit(X, y, sample_weight=wt) 
 
-    scores = xgb_model.predict_proba(X)[:,1]
-    print metrics.roc_auc_score(y,scores)
-
-    pkl.dump(xgb_model,open("BDTs/{}/subtraction_{}.pkl".format(data["channel"],pf), "wb"))
-    del temp_df, X, y, wt
+    pkl.dump(model,open("BDTs/{}/subtraction_kmeans_{}.pkl".format(data["channel"],pf), "wb"))
+    del temp_df, X, wt
 
   else:
 
     print "<< Loading Model >>"
 
-    xgb_model = pkl.load(open("BDTs/{}/subtraction_{}.pkl".format(data["channel"],pf), "rb"))
+    model = pkl.load(open("BDTs/{}/subtraction_kmeans_{}.pkl".format(data["channel"],pf), "rb"))
+
 
 
   ### finding events for removal ###
 
+  mc_df.dataframe.loc[:,"cats"] = model.predict(scaled_features)
+  sum_wts = {i:mc_df.dataframe[(mc_df.dataframe.loc[:,"cats"] == i)].loc[:,"weights"].sum() for i in  mc_df.dataframe.loc[:,"cats"].unique()}
+
   dfdir = "dataframes/{}/data_{}".format(data["channel"],pf)
-  for filename in os.listdir(dfdir):
-    print dfdir+"/"+filename
-    data_df = pd.read_pickle(dfdir+"/"+filename)
-    X_data_df = copy.deepcopy(data_df)
-    X_data_df.drop(["weights"],axis=1,inplace=True)
-    data_df.loc[:,"scores"] = xgb_model.predict_proba(X_data_df)[:,1]
+  for ind, val in enumerate(os.listdir(dfdir)):
+    temp_df = pd.read_pickle(dfdir+"/"+val)
+    temp_df.loc[:,"type"] = val.split(pf+"_")[1].split(".pkl")[0]
+    if ind == 0:
+      data_df = Dataframe()
+      data_df.dataframe = copy.deepcopy(temp_df)
+    else:
+      data_df.dataframe = pd.concat([temp_df,data_df.dataframe], ignore_index=True, sort=False)
 
-    mcdfdir = "dataframes/{}/mc_other_{}/mc_other_{}".format(data["channel"],pf,filename.replace("data_",""))      
-    mc_df = pd.read_pickle(mcdfdir)
-    X_mc_df = copy.deepcopy(mc_df)
-    X_mc_df.drop(["weights"],axis=1,inplace=True)
-    mc_df.loc[:,"scores"] = xgb_model.predict_proba(X_mc_df)[:,1]
+  type_data = data_df.dataframe.loc[:,"type"]
+  data_df.dataframe = data_df.dataframe.drop(["type"],axis=1)
+  X, wt = data_df.SplitXWts()
 
-    nbins = max(min(int(np.floor(mc_df.loc[:,"weights"].sum()/2)),100),5) 
-    mc_hist, mc_bins = np.histogram(np.array(mc_df.loc[:,"scores"]),bins=nbins,weights=np.array(mc_df.loc[:,"weights"]),range=(0,1))
+  scaler = StandardScaler()
+  scaled_features = scaler.fit_transform(X)
+  data_df.dataframe.loc[:,"cats"] = model.predict(scaled_features)
 
-    # check there are more mc_stats in the bins than in data, if not do some merging - do this tomorrow
+  rm_indices = []
+  for key, val in sum_wts.items():
+    slimmed_data_df = data_df.dataframe[(data_df.dataframe.loc[:,"cats"] == key)]
 
-    rm_indices = []
-    for ind, val in enumerate(mc_hist):
-      # get slimmed down data df
-      if mc_bins[ind+1] == 1.0: mc_bins[ind+1] = 1.00001
-      slimmed_data_df = data_df[((data_df.loc[:,"scores"]>=mc_bins[ind]) & (data_df.loc[:,"scores"]<mc_bins[ind+1]))]
-
-      # remove events
-      if len(slimmed_data_df) > 0:
-        removed_weights = 0.0
+    # remove events
+    if len(slimmed_data_df) > 0:
+      removed_weights = 0.0
+      sample = slimmed_data_df.sample()
+      stuck_counter = 0
+      # this removes weights that are under, but half the time they will be over. We could do some bin merging if we want to be clever
+      while removed_weights+sample.loc[:,"weights"].iloc[0] < val or (removed_weights < val and removed_weights+sample.loc[:,"weights"].iloc[0] > val and val > 0.5 and bool(random.getrandbits(1))):
+        if sample.index.values[0] not in rm_indices:
+          rm_indices.append(sample.index.values[0])
+          removed_weights += sample.loc[:,"weights"].iloc[0]
+          stuck_counter = 0
+        elif stuck_counter > 1000:
+          break
+        else:
+          stuck_counter += 1
         sample = slimmed_data_df.sample()
-        stuck_counter = 0
-        # this removes weights that are under, but half the time they will be over. We could do some bin merging if we want to be clever
-        while removed_weights+sample.loc[:,"weights"].iloc[0] < val or (removed_weights < val and removed_weights+sample.loc[:,"weights"].iloc[0] > val and val > 0.5 and bool(random.getrandbits(1))):
-          if sample.index.values[0] not in rm_indices:
-            rm_indices.append(sample.index.values[0])
-            removed_weights += sample.loc[:,"weights"].iloc[0]
-            stuck_counter = 0
-          elif stuck_counter > 1000:
-            break
-          else:
-            stuck_counter += 1 
-          sample = slimmed_data_df.sample()
-        print mc_bins[ind], mc_bins[ind+1], val, removed_weights, len(slimmed_data_df)
- 
-    ### Remove events ###
-    indexes_to_keep = set(range(data_df.shape[0])) - set(rm_indices)
-    rm_indices.sort()
-    subtract_df = Dataframe()
-    subtract_df.dataframe = data_df.take(list(indexes_to_keep))
-    subtract_df.dataframe.drop(["scores"],axis=1,inplace=True)
-    print "Subtracted Sum", subtract_df.dataframe.loc[:,"weights"].sum()
-    print "Data Sum - MC Sum", data_df.loc[:,"weights"].sum() - mc_df.loc[:,"weights"].sum()
-    ### write dataframes ###
-    subtract_df.dataframe.to_pickle("dataframes/{}/subtracted_{}/subtracted_{}".format(data["channel"],pf,filename.replace("data_","")))
+      print key, val, removed_weights, len(slimmed_data_df)
+
+  ### Remove events ###
+  indexes_to_keep = set(range(data_df.dataframe.shape[0])) - set(rm_indices)
+  rm_indices.sort()
+  subtract_df = Dataframe()
+  data_df.dataframe.loc[:,"type"] = type_data
+  subtract_df.dataframe = data_df.dataframe.take(list(indexes_to_keep))
+  subtract_df.dataframe.drop(["cats"],axis=1,inplace=True)
+  print "Subtracted Sum", subtract_df.dataframe.loc[:,"weights"].sum()
+  print "Data Sum - MC Sum", data_df.dataframe.loc[:,"weights"].sum() - mc_df.dataframe.loc[:,"weights"].sum()
+  ### write dataframes ###
+  for filename in type_data.unique():
+    temp_df = copy.deepcopy(subtract_df.dataframe)
+    temp_df = temp_df[(temp_df.loc[:,"type"]==filename)]
+    temp_df.drop(["type"],axis=1,inplace=True)
+    temp_df.to_pickle("dataframes/{}/subtracted_{}/subtracted_{}_{}.pkl".format(data["channel"],pf,pf,filename))
 
   ### Plotting ###
 
@@ -182,6 +186,7 @@ for pf in ["pass"]:
       subtract_df.dataframe = pd.concat([temp_df,subtract_df.dataframe], ignore_index=True, sort=False)
     ind += 1
 
+
   ind = 0 
   fdir = "dataframes/{}/mc_other_{}".format(data["channel"],pf)
   for val in os.listdir(fdir):
@@ -193,6 +198,7 @@ for pf in ["pass"]:
       mc_df.dataframe = pd.concat([temp_df,mc_df.dataframe], ignore_index=True, sort=False)
     ind += 1 
 
+
   ind = 0 
   fdir = "dataframes/{}/data_{}".format(data["channel"],pf)
   for val in os.listdir(fdir):
@@ -203,6 +209,7 @@ for pf in ["pass"]:
     else:
       neg_weight_df.dataframe = pd.concat([temp_df,neg_weight_df.dataframe], ignore_index=True, sort=False)
     ind += 1 
+
 
   ttree_subtract = subtract_df.WriteToRoot(None,key='ntuple',return_tree=True)
   ttree_nom = copy.deepcopy(neg_weight_df).WriteToRoot(None,key='ntuple',return_tree=True)
@@ -309,7 +316,7 @@ for pf in ["pass"]:
 
       l = ROOT.TLegend(0.6,0.65,0.88,0.85);
       l.SetBorderSize(0)
-      l.AddEntry(hist1,"BDT subtraction","f")
+      l.AddEntry(hist1,"K-means subtraction","f")
       l.AddEntry(hist2,"Histogram subtraction","lep")
       l.AddEntry(hist3,"No subtraction","lep")
       l.Draw()
@@ -396,3 +403,4 @@ for pf in ["pass"]:
       c_clos.SaveAs(clos_name)
       c_clos.Close()
       del c_clos
+

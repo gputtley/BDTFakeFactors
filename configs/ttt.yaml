@@ -188,7 +188,7 @@ years_and_mc_files:
     - 'GluGluToContinToZZTo4e'
     - 'GluGluToContinToZZTo4mu'
     - 'GluGluToContinToZZTo4tau'
-baseline_selection: "deepTauVsJets_iso_1>0.1 && deepTauVsJets_iso_2>0.1 && deepTauVsJets_iso_3>0.1 && deepTauVsMu_vloose_1>0.5 && deepTauVsEle_vvloose_1>0.5 && deepTauVsMu_vloose_2>0.5 && deepTauVsEle_vvloose_2>0.5 && deepTauVsMu_vloose_3>0.5 && deepTauVsEle_vvloose_3>0.5 && ((trg_doubletau_12==1) || (trg_doubletau_13==1) || (trg_doubletau_23==1))"
+baseline_selection: "deepTauVsJets_iso_1>0.1 && deepTauVsJets_iso_2>0.1 && deepTauVsJets_iso_3>0.1 && deepTauVsMu_vloose_1>0.5 && deepTauVsEle_vvloose_1>0.5 && deepTauVsMu_vloose_2>0.5 && deepTauVsEle_vvloose_2>0.5 && deepTauVsMu_vloose_3>0.5 && deepTauVsEle_vvloose_3>0.5 && ((pt_1>40 && pt_2>40 && trg_doubletau_12==1) || (pt_1>40 && pt_3>40 && trg_doubletau_13==1) || (pt_2>40 && pt_3>40 && trg_doubletau_23==1))"
 pass_selection: "deepTauVsJets_loose_NUM"
 sideband_pass: "(q_sum==1 || q_sum==-1)"
 alt_sideband_pass: "deepTauVsJets_loose_ALT"
