@@ -2,7 +2,7 @@ from UserCode.BDTFakeFactors import reweighter
 from UserCode.BDTFakeFactors.Dataframe import Dataframe
 #from UserCode.BDTFakeFactors.plotting import DrawClosurePlots, DrawColzReweightPlots, DrawAverageReweightPlots, FindRebinning, RebinHist, ReplaceName
 from UserCode.BDTFakeFactors.plotting import FindRebinning, RebinHist, ReplaceName, DrawTitle
-from UserCode.BDTFakeFactors.functions import GetNonZeroMinimum
+from UserCode.BDTFakeFactors.functions import GetNonZeroMinimum, GetMaximum, GetNonClosureLargestShift
 import copy
 import pandas as pd
 import numpy as np
@@ -191,7 +191,7 @@ class ff_ml():
 
       del pad_rwt, c_rwt
 
-  def PlotClosuresFromHistograms(self, var_name, pass_hist, fail_hists, pass_hist_legend, legend_names, title_left="", title_right="", logx=[], logy=[], rebin=True, BinThreshold=100, BinUncertFraction=0.5, colours=[2,6,42,46,39,49], plot_name="",text=""):
+  def PlotClosuresFromHistograms(self, var_name, pass_hist, fail_hists, pass_hist_legend, legend_names, title_left="", title_right="", logx=[], logy=[], rebin=True, BinThreshold=100, BinUncertFraction=0.5, colours=[2,6,42,46,39,49], plot_name="",text="",extra_uncerts=None):
 
       if rebin:
         for ind1, h1 in enumerate(fail_hists):
@@ -203,11 +203,19 @@ class ff_ml():
         pass_hist = RebinHist(pass_hist,binning)
         for ind2, h2 in enumerate(fail_hists):
           fail_hists[ind2] = RebinHist(h2,binning)
+        if extra_uncerts != None:
+          extra_uncerts = RebinHist(extra_uncerts,binning)
+
+
+      if extra_uncerts != None:
+        for j in range(0,fail_hists[0].GetNbinsX()+1):
+          fail_hists[0].SetBinError(j,(fail_hists[0].GetBinError(j)**2 + (extra_uncerts.GetBinContent(j)-fail_hists[0].GetBinContent(j))**2)**0.5)
 
 
       pass_hist.Scale(1.0,"width")
       for ind,h in enumerate(fail_hists):
         fail_hists[ind].Scale(1.0,"width")
+
 
       pass_hist_divide = pass_hist.Clone()
       for i in range(0,pass_hist_divide.GetNbinsX()+2): pass_hist_divide.SetBinError(i,0)
@@ -216,13 +224,17 @@ class ff_ml():
         fail_hists_divide.append(h.Clone())
         for i in range(0,fail_hists_divide[ind].GetNbinsX()+2): fail_hists_divide[ind].SetBinError(i,0)
 
-      pass_hist_ratio = pass_hist.Clone()
-      pass_hist_ratio.Divide(pass_hist_divide)
+      #pass_hist_ratio = pass_hist.Clone()
+      #pass_hist_ratio.Divide(pass_hist_divide)
+      pass_hist_ratio = fail_hists[0].Clone()
+      pass_hist_ratio.Divide(fail_hists_divide[0])
 
       pass_hist_fail_hists_ratio = []
       for ind,h in enumerate(fail_hists):
         pass_hist_fail_hists_ratio.append(pass_hist.Clone())
         pass_hist_fail_hists_ratio[ind].Divide(fail_hists_divide[ind])
+
+
 
       c_clos = ROOT.TCanvas('c','c',600,600)
 
@@ -301,11 +313,13 @@ class ff_ml():
       pad2.Draw()
       pad2.cd()
 
-      orig_max_ratio = max([i.GetMaximum() for i in pass_hist_fail_hists_ratio+[pass_hist_ratio]])
+      
+      orig_max_ratio = max([GetMaximum(i) for i in pass_hist_fail_hists_ratio+[pass_hist_ratio]])
       orig_min_ratio = min([GetNonZeroMinimum(i) for i in pass_hist_fail_hists_ratio+[pass_hist_ratio]])
       largest_shift = max(orig_max_ratio,2-orig_min_ratio)
-      possible_max = [1.05,1.1,1.2,1.4,1.6,1.8,2.0,3.0,4.0,5.0,10.0]
+      possible_max = [1.2,1.4,1.6,1.8,2.0,9999.0]
       max_ratio = min(possible_max, key=lambda x:((x>largest_shift)*abs(x-largest_shift)) + ((x<=largest_shift)*9999))
+      if max_ratio == 9999.0: max_ratio = 2.0
       min_ratio = max(2 - max_ratio,0)
 
       ratio_line = ROOT.TLine(pass_hist.GetBinLowEdge(1),1,pass_hist.GetBinLowEdge(pass_hist.GetNbinsX()+1),1)
@@ -381,15 +395,18 @@ class ff_ml():
     return bins
 
 
-  def PlotReweightsAndClosure(self, name, sel, data_type=None, title_left="", title_right="", logx=[], logy=[], compare_other_rwt=[], flat_rwt=False, plot_name="", BinThreshold=100, BinUncertFraction=0.5):
+  def PlotReweightsAndClosure(self, name, sel, data_type=None, title_left="", title_right="", logx=[], logy=[], compare_other_rwt=[], flat_rwt=False, plot_name="", BinThreshold=100, BinUncertFraction=0.2, add_uncerts=None):
 
     ROOT.gROOT.SetBatch(ROOT.kTRUE)
     ROOT.TGaxis.SetExponentOffset(-0.06, 0.01, "y");
 
     if type(compare_other_rwt) == str: compare_other_rwt = [compare_other_rwt]
-   
+
     if name == "All":
-      loop_over = ["B","C","D"]
+      loop_over = []
+      for i in ["B","C","D"]:
+        if not (self.df1[i] == [] or self.df2[i] == []):
+          loop_over.append(i)
     else:
       loop_over = [name]
 
@@ -403,7 +420,7 @@ class ff_ml():
     binnings = [self.FindBinning(df,i) for i in var]
 
     for n in loop_over:
-      
+
       # make dataframe fail
       df = self.GetDataframes(n,data_type=data_type,full=True,all_mode=(name=="All"),return_specific=1)
 
@@ -426,6 +443,12 @@ class ff_ml():
         df1.loc[:,"reweights"] = self.model[name].predict_reweights(X_df1.loc[:,list(self.model[name].column_names)])
       else:
         df1.loc[:,"reweights"] = self.model[name].predict_reweights(X_df1.loc[:,list(self.model[name].column_names)],cap_at=None)
+
+      if add_uncerts != None:
+        tmp_df = GetNonClosureLargestShift(X_df1.loc[:,list(self.model[name].column_names)],add_uncerts,df1.loc[:,"reweights"])
+        df1.loc[:,"uncerts_up"] = tmp_df.loc[:,"up"]
+        df1.loc[:,"uncerts_down"] = tmp_df.loc[:,"down"]
+        del tmp_df
 
       # load to root ttree pass
       df_write = Dataframe()
@@ -452,10 +475,10 @@ class ff_ml():
 
       df1 = pd.concat([wt_df1,var_df],axis=1)
 
-      if name == "B":
-        df1.loc[:,"reweights"] = self.model[name].predict_reweights(X_df1.loc[:,list(self.model[name].column_names)])
-      else:
-        df1.loc[:,"reweights"] = self.model[name].predict_reweights(X_df1.loc[:,list(self.model[name].column_names)],cap_at=None)
+      #if name == "B":
+      #  df1.loc[:,"reweights"] = self.model[name].predict_reweights(X_df1.loc[:,list(self.model[name].column_names)])
+      #else:
+      #  df1.loc[:,"reweights"] = self.model[name].predict_reweights(X_df1.loc[:,list(self.model[name].column_names)],cap_at=None)
 
       # load to root ttree fail
       df_write = Dataframe()
@@ -521,6 +544,7 @@ class ff_ml():
         hist1.SetName('hist1')
         hist2 = hout.Clone()
         hist2.SetName('hist2')
+
         hist3 = []
         if n == "C":
           for ind,val in enumerate(compare_other_rwt):
@@ -542,6 +566,24 @@ class ff_ml():
         ttree_fail[n].Draw('%(var_name)s>>hist2' % vars(),'weights*reweights*(1)','goff')
         hist2 = ttree_fail[n].GetHistogram()
 
+        if add_uncerts != None:
+
+          hist2_up = hout.Clone()
+          hist2_up.SetName('hist2_up')
+
+          hist2_down = hout.Clone()
+          hist2_down.SetName('hist2_down')
+
+          hist2_up.SetDirectory(ROOT.gROOT)
+          ttree_fail[n].Draw('%(var_name)s>>hist2_up' % vars(),'weights*uncerts_up*(1)','goff')
+          hist2_up = ttree_fail[n].GetHistogram()
+  
+          hist2_down.SetDirectory(ROOT.gROOT)
+          ttree_fail[n].Draw('%(var_name)s>>hist2_down' % vars(),'weights*uncerts_down*(1)','goff')
+          hist2_down = ttree_fail[n].GetHistogram()
+        else:
+          hist2_up = None
+
         hist4_add = []
         leg_list = []
         if n == "C":
@@ -561,7 +603,7 @@ class ff_ml():
           closure_name = plot_name+"_"+n.lower().replace(" ","_").replace("_{","").replace("}","")
         else:
           closure_name = plot_name
-        self.PlotClosuresFromHistograms(var_name, hist1, [hist2]+hist3+hist4_add, "Pass", ["BDT F_{F}"]+leg_list, title_left=title_left, title_right=title_right, logx=logx, logy=logy, rebin=rebin, BinThreshold=BinThreshold, BinUncertFraction=BinUncertFraction, plot_name=closure_name, text="Region "+n)
+        self.PlotClosuresFromHistograms(var_name, hist1, [hist2]+hist3+hist4_add, "Pass", ["BDT F_{F}"]+leg_list, title_left=title_left, title_right=title_right, logx=logx, logy=logy, rebin=rebin, BinThreshold=BinThreshold, BinUncertFraction=BinUncertFraction, plot_name=closure_name, text="Region "+n, extra_uncerts=hist2_up)
 
       if name == "All":
         # Do combined closure plot
@@ -569,11 +611,19 @@ class ff_ml():
         hist1_total.SetName('hist1_total')
         hist2_total = hout.Clone()
         hist2_total.SetName('hist2_total')
+        if add_uncerts != None:
+          hist2_total_up = hout.Clone()
+          hist2_total_up.SetName('hist2_total_up')
+        else:
+          hist2_total_up = None
         for n in loop_over:
           hist1_temp = hout.Clone()
           hist1_temp.SetName('hist1_temp')
           hist2_temp = hout.Clone()
           hist2_temp.SetName('hist2_temp')
+          if add_uncerts != None:
+            hist2_temp_up = hout.Clone()
+            hist2_temp_up.SetName('hist2_temp_up')
           if n in ttree_pass:
             hist1_temp.SetDirectory(ROOT.gROOT)
             ttree_pass[n].Draw('%(var_name)s>>hist1_temp' % vars(),'weights*(1)','goff')
@@ -584,8 +634,15 @@ class ff_ml():
             ttree_fail[n].Draw('%(var_name)s>>hist2_temp' % vars(),'weights*reweights*(1)','goff')
             hist2_temp = ttree_fail[n].GetHistogram()
             hist2_total.Add(hist2_temp)
+            if add_uncerts != None:
+              hist2_temp_up.SetDirectory(ROOT.gROOT)
+              ttree_fail[n].Draw('%(var_name)s>>hist2_temp_up' % vars(),'weights*uncerts_up*(1)','goff')
+              hist2_temp_up = ttree_fail[n].GetHistogram()
+              hist2_total_up.Add(hist2_temp_up)
+
+
         closure_name = plot_name+"_all"
-        self.PlotClosuresFromHistograms(var_name, hist1_total, [hist2_total], "Pass", ["BDT F_{F}"], title_left=title_left, title_right=title_right, logx=logx, logy=logy, rebin=rebin, BinThreshold=BinThreshold, BinUncertFraction=BinUncertFraction, plot_name=closure_name, text="Regions B, C and D")
+        self.PlotClosuresFromHistograms(var_name, hist1_total, [hist2_total], "Pass", ["BDT F_{F}"], title_left=title_left, title_right=title_right, logx=logx, logy=logy, rebin=rebin, BinThreshold=BinThreshold, BinUncertFraction=BinUncertFraction, plot_name=closure_name, text="Regions B, C and D", extra_uncerts=hist2_total_up)
 
       
 

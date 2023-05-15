@@ -93,6 +93,7 @@ for file_name in os.listdir(loc):
     if not args.hadd and (args.channel == None or args.channel == channel):
       f = ROOT.TFile(loc+'/'+file_name,"READ")
       t = f.Get("ntuple")
+      if type(t) == type(ROOT.TObject()): continue
       ent = t.GetEntries()
       splits = ((ent - (ent%splitting))/splitting) + 1
 

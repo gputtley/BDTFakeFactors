@@ -1,6 +1,6 @@
 from UserCode.BDTFakeFactors.Dataframe import Dataframe
 from UserCode.BDTFakeFactors.ff_ml import ff_ml
-from UserCode.BDTFakeFactors.functions import PrintDatasetSummary, MakeSelFromList, MakeSelDict
+from UserCode.BDTFakeFactors.functions import PrintDatasetSummary, MakeSelFromList, MakeSelDict, ConvertTH1ToLambda
 from UserCode.BDTFakeFactors.batch import CreateBatchJob,SubmitBatchJob
 from UserCode.BDTFakeFactors import reweighter
 from collections import OrderedDict
@@ -46,21 +46,6 @@ if args.batch:
   SubmitBatchJob("jobs/"+name+".sh")
   exit()
 
-############ Functions ##########################
-
-def ConvertTH1ToLambda(hist):
-  form = "("
-  for i in range(1,hist.GetNbinsX()+1):
-    if i == 1 and hist.GetNbinsX() > 1:
-      form += "({}*(x<{}))".format(hist.GetBinContent(i),hist.GetBinLowEdge(i+1))
-    elif i == 1 and hist.GetNbinsX() == 1:
-      form += "{})".format(hist.GetBinContent(i))
-    elif i == hist.GetNbinsX():
-      form += "+ ({}*(x>={})))".format(hist.GetBinContent(i),hist.GetBinLowEdge(i))
-    else:
-      form += "+ ({}*((x>={}) & (x<{})))".format(hist.GetBinContent(i),hist.GetBinLowEdge(i),hist.GetBinLowEdge(i+1))
-  return form
-
 
 ############# Assign dataframes #################
 
@@ -81,8 +66,8 @@ for f in glob.glob("dataframes/{}/subtracted_fail/subtracted_fail_B*".format(dat
 model_name = "reweights_{}".format(data["channel"])
 rwter = pkl.load(open("BDTs/{}/ff_{}.pkl".format(data["channel"],model_name), "rb"))
 store.AddModel(rwter,"All")
-train_fail, wt_train_fail, train_pass, wt_train_pass = store.GetDataframes("All",data_type="train",with_reweights=True)
-test_fail, wt_test_fail, test_pass, wt_test_pass = store.GetDataframes("All",data_type="test",with_reweights=True)
+#test_fail, wt_test_fail, test_pass, wt_test_pass = store.GetDataframes("All",data_type="test",with_reweights=True)
+test_fail, wt_test_fail, test_pass, wt_test_pass = store.GetDataframes("All",with_reweights=True)
 
 df_write_pass = Dataframe()
 test_pass.loc[:,"weights"] = wt_test_pass
@@ -133,17 +118,29 @@ for col in test_fail.columns:
   ttree_pass.Draw('%(var_name)s>>hist_pass' % vars(),'weights*(1)','goff')
   hist_pass = ttree_pass.GetHistogram()
 
-  binning = FindRebinning(hist_fail,BinThreshold=100,BinUncertFraction=0.1)
-  hist_pass = RebinHist(hist_pass,binning)
-  binning = FindRebinning(hist_pass,BinThreshold=100,BinUncertFraction=0.1)
-  hist_pass = RebinHist(hist_pass,binning)
-  hist_fail = RebinHist(hist_fail,binning)
+  if len(bins) > 10:
+    binning = FindRebinning(hist_fail,BinThreshold=100,BinUncertFraction=0.1)
+    hist_pass = RebinHist(hist_pass,binning)
+    binning = FindRebinning(hist_pass,BinThreshold=100,BinUncertFraction=0.1)
+    hist_pass = RebinHist(hist_pass,binning)
+    hist_fail = RebinHist(hist_fail,binning)
 
-  neg_hist_fail = hist_fail.Clone()
-  neg_hist_fail.Scale(-1)
-  hist_pass.Add(neg_hist_fail.Clone())
-  hist_pass.Divide(hist_fail.Clone())
-  for i in range(0,hist_pass.GetNbinsX()+1): hist_pass.SetBinContent(i,abs(hist_pass.GetBinContent(i)))
+  #neg_hist_fail = hist_fail.Clone()
+  #neg_hist_fail.Scale(-1)
+  #hist_pass.Add(neg_hist_fail.Clone())
+  #hist_pass.Divide(hist_fail.Clone())
+  #for i in range(0,hist_pass.GetNbinsX()+1): hist_pass.SetBinContent(i,abs(hist_pass.GetBinContent(i)))
+  hist_pass.Divide(hist_fail)
+  for i in range(0,hist_pass.GetNbinsX()+1):
+    if hist_pass.GetBinContent(i) == 0.0: continue
+    content = max(hist_pass.GetBinContent(i),1.0/hist_pass.GetBinContent(i))
+    error = hist_pass.GetBinError(i)
+    val = (content-1)**2 - error**2
+    if val > 0:
+      hist_pass.SetBinContent(i,(val**0.5))
+    else:
+      hist_pass.SetBinContent(i,0.0)
+
   l_dump[col] = ConvertTH1ToLambda(hist_pass)
 
 with open('BDTs/ff_non_closure_uncertainties_{}.json'.format(data["channel"]), 'w') as outfile: json.dump(l_dump, outfile, indent=2)

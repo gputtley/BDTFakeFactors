@@ -135,6 +135,7 @@ for ind, obj in enumerate(data["channel"]):
         df.LoadRootFilesFromJson(json_file,variables,quiet=(args.verbosity<2))
         df.RenumberColumns(ind+1)
         if args.verbosity > 0: PrintDatasetSummary("{}_{}_{} dataframe".format(dm,k,str(ind+1)),df.dataframe)
+        df.dataframe.loc[:,"tau_number"] = ind+1
         df.dataframe.to_pickle("dataframes/{}/{}_{}/{}_{}_{}.pkl".format(data["channel"], dm, k[:-2], dm, k, str(ind+1)))
         print "Created dataframes/{}/{}_{}/{}_{}_{}.pkl".format(data["channel"], dm, k[:-2], dm, k, str(ind+1))
       offset +=1

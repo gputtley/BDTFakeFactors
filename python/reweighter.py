@@ -27,26 +27,43 @@ class reweighter(GBReweighter):
     self.initial_normalization = 1.0
     self.column_names = []
     self.KS_value = None
-    self.wt_function = None
-    self.wt_function_var = None
+    self.wt_function = []
+    self.wt_function_var = []
 
 
   def norm_and_fit(self, original, target, original_weight, target_weight, cap_at=None):
 
-    if self.wt_function != None and self.wt_function_var != None:
-      print "Using weight scaling function for variable {}:".format(self.wt_function_var)
-      print self.wt_function
-      original_weight *= original.loc[:,self.wt_function_var].apply(lambda x: eval(self.wt_function))
-      target_weight *= target.loc[:,self.wt_function_var].apply(lambda x: eval(self.wt_function))
+    print "Original Weights Sum:", original_weight.sum()
+    print "Target Weights Sum:", target_weight.sum()
+
+    initial_original_weight = copy.deepcopy(original_weight)
+    initial_target_weight = copy.deepcopy(target_weight)
+    if self.wt_function != [] and self.wt_function_var != []:
+      for ind, wt_function in enumerate(self.wt_function):
+        print "Using weight scaling function for variable {}:".format(self.wt_function_var[ind])
+        print self.wt_function[ind]
+        original_weight *= original.loc[:,self.wt_function_var[ind]].apply(lambda x: eval(self.wt_function[ind]))
+        target_weight *= target.loc[:,self.wt_function_var[ind]].apply(lambda x: eval(self.wt_function[ind]))
 
     self.column_names = original.keys()
     self.normalization = target_weight.sum()/original_weight.sum()
     self.initial_normalization = target_weight.sum()/original_weight.sum()
     self.fit(original, target, original_weight=self.normalization*original_weight, target_weight=target_weight)
+
     # renormalise after fit
-    for i in range(0,10):
-      total_original_weights = np.multiply(self.predict_reweights(original,add_norm=True,cap_at=cap_at),original_weight)
-      self.normalization = self.normalization*target_weight.sum()/total_original_weights.sum()
+    total_original_weights = np.multiply(self.predict_reweights(original,add_norm=False,cap_at=cap_at),initial_original_weight)
+    self.normalization = initial_target_weight.sum()/total_original_weights.sum()
+    print self.normalization
+
+    #for i in range(0,10):
+    #  total_original_weights = np.multiply(self.predict_reweights(original,add_norm=True,cap_at=cap_at),original_weight)
+    #  self.normalization = self.normalization*target_weight.sum()/total_original_weights.sum()
+
+    pred = self.predict_reweights(original,add_norm=True,cap_at=cap_at)
+
+    print np.multiply(self.predict_reweights(original,add_norm=True,cap_at=cap_at),initial_original_weight).sum(), initial_target_weight.sum()
+
+    print "Average Weight:", pred.sum()/len(pred)
  
 
   def predict_reweights(self, original, add_norm=True,cap_at=None):

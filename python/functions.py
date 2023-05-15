@@ -4,10 +4,23 @@ import numpy as np
 import copy
 import json
 
+def ConvertTH1ToLambda(hist):
+  form = "("
+  for i in range(1,hist.GetNbinsX()+1):
+    if i == 1 and hist.GetNbinsX() > 1:
+      form += "({}*(x<{}))".format(hist.GetBinContent(i),hist.GetBinLowEdge(i+1))
+    elif i == 1 and hist.GetNbinsX() == 1:
+      form += "{})".format(hist.GetBinContent(i))
+    elif i == hist.GetNbinsX():
+      form += "+ ({}*(x>={})))".format(hist.GetBinContent(i),hist.GetBinLowEdge(i))
+    else:
+      form += "+ ({}*((x>={}) & (x<{})))".format(hist.GetBinContent(i),hist.GetBinLowEdge(i),hist.GetBinLowEdge(i+1))
+  return form
+
 def GetNonZeroMinimum(hist):
   no_min = True
   for i in range(0,hist.GetNbinsX()+1):
-    bc = hist.GetBinContent(i)
+    bc = hist.GetBinContent(i) - hist.GetBinError(i)
     if no_min and bc != 0: 
       min_bin = bc*1.0
       no_min = False
@@ -16,6 +29,18 @@ def GetNonZeroMinimum(hist):
         min_bin = bc*1.0
   if no_min: min_bin = 0.0
   return min_bin
+
+def GetMaximum(hist):
+  no_max = True
+  for i in range(0,hist.GetNbinsX()+1):
+    bc = hist.GetBinContent(i) + hist.GetBinError(i)
+    if no_max:
+      max_bin = bc*1.0
+      no_max = False
+    elif bc > max_bin:
+        max_bin = bc*1.0
+  if no_max: max_bin = 0.0
+  return max_bin
 
 
 
@@ -38,13 +63,15 @@ def EqualBinStats(dataframe,weights,col,n_bins=20,min_bin=None,max_bin=None,igno
     bins = list(np.linspace(start,end,n_bins))
   else:
     bins = sorted(df.loc[:,col].unique())
-    bins.append(2*bins[-1]-bins[-2])
+    if len(bins) > 1:
+      bins.append(2*bins[-1]-bins[-2])
 
-  bin_weight_sum =  [df.loc[((df.loc[:,col]>=bins[i])&(df.loc[:,col]>=bins[i+1])),"weight"].sum() for i in range(0,len(bins)-1)]
+  bin_weight_sum =  [df.loc[((df.loc[:,col]>=bins[i])&(df.loc[:,col]<bins[i+1])),"weight"].sum() for i in range(0,len(bins)-1)]
   scale_by = [max(bin_weight_sum)/i for i in bin_weight_sum]
   bins[-1] = "999999"
   bins[0] = "-999999"
   join_str = ["(((x>={}) * (x<{})) * ({}))".format(bins[i],bins[i+1],scale_by[i]) for i in range(0,len(bins)-1)]
+  print " + ".join(join_str)
   return " + ".join(join_str)
 
 def PrintDatasetSummary(name,dataset):
@@ -136,13 +163,12 @@ def SampleValuesAndGiveLargestShift(df,model,var,pass_val,fail_val,continuous=Fa
       sel_string += "& "
     else:
       sel_string += ")"
-
   store_df = copy.deepcopy(df)
   diff = pd.DataFrame()
   original_weights = model.predict_reweights(df)
   for i in range(1,n_samples+1):
     df = copy.deepcopy(store_df)
-    for ind, v in enumerate(var):   
+    for ind, v in enumerate(var):
       if not continuous:
         exec('df.loc[{},v] = np.random.choice(fail_val[ind], df.loc[{},:].shape[0])'.format(sel_string,sel_string))
       else:
@@ -154,11 +180,20 @@ def SampleValuesAndGiveLargestShift(df,model,var,pass_val,fail_val,continuous=Fa
   return_df.loc[:,"down"] = original_weights - max_diff
   return_df.loc[(return_df.loc[:,"down"]<0),"down"] = 0.0
   return_df.loc[(return_df.loc[:,"up"]<0),"up"] = 0.0
-  print var, "Average Shift:", (return_df.loc[:,"up"].sum()/original_weights.sum())
+  tmp_ave = return_df.loc[:,"up"].divide(original_weights)
+  tmp_ave = tmp_ave[tmp_ave != 1.0]
+  #print var, "Average Shift:", (return_df.loc[:,"up"].sum()/original_weights.sum())
+  if len(tmp_ave) > 0:
+    if name == "":
+      print var, "Average Shift:", tmp_ave.sum()/len(tmp_ave)
+    else:
+      print name, "Average Shift:", tmp_ave.sum()/len(tmp_ave)
+  else:
+      print name, "Average Shift:", 1.0
   return return_df
 
 
-def GetNonClosureLargestShift(df,json_file,reweights):
+def GetNonClosureLargestShift(df,json_file,reweights,name=""):
   with open(json_file) as json_file: l_funcs = json.load(json_file,object_pairs_hook=OrderedDict)
   uncert_df = pd.DataFrame()
   i = 0
@@ -173,6 +208,8 @@ def GetNonClosureLargestShift(df,json_file,reweights):
   return_df.loc[:,"down"] = reweights - max_uncert
   return_df.loc[(return_df.loc[:,"down"]<0),"down"] = 0.0
   return_df.loc[(return_df.loc[:,"up"]<0),"up"] = 0.0
-  
-  print "Non Closure Average Shift:", (return_df.loc[:,"up"].sum()/reweights.sum())
+  if name == "":
+    print "Non Closure Average Shift:", (return_df.loc[:,"up"].sum()/reweights.sum())
+  else:
+    print name, "Average Shift:", (return_df.loc[:,"up"].sum()/reweights.sum())
   return return_df

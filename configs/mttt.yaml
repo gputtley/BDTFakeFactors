@@ -124,6 +124,7 @@ years_and_mc_files:
     - 'GluGluToContinToZZTo4mu'
     - 'GluGluToContinToZZTo4tau'
   "2017":
+    - 'DYJetsToLL-LO-ext1'
     - 'DYJetsToLL-LO'
     - 'DY1JetsToLL-LO'
     - 'DY2JetsToLL-LO'
@@ -164,6 +165,7 @@ years_and_mc_files:
     - 'GluGluToContinToZZTo4mu'
     - 'GluGluToContinToZZTo4tau'
   "2018":
+    - 'DYJetsToLL-LO-ext1'
     - 'DYJetsToLL-LO'
     - 'DY1JetsToLL-LO'
     - 'DY2JetsToLL-LO'
@@ -205,7 +207,7 @@ years_and_mc_files:
     - 'GluGluToContinToZZTo4e'
     - 'GluGluToContinToZZTo4mu'
     - 'GluGluToContinToZZTo4tau'
-baseline_selection: "deepTauVsJets_iso_2>0.1 && deepTauVsJets_iso_3>0.1 && deepTauVsJets_iso_4>0.1 && iso_1<0.15 && deepTauVsMu_vloose_2>0.5 && deepTauVsEle_vvloose_2>0.5 && deepTauVsMu_vloose_3>0.5 && deepTauVsEle_vvloose_3>0.5 && deepTauVsMu_vloose_4>0.5 && deepTauVsEle_vvloose_4>0.5 && ((trg_singlemuon_1==1) || (trg_doubletau_23==1) || (trg_doubletau_24==1) || (trg_doubletau_34==1)) && (((isTau==1) && ((trg_singlemuon_1==1)))==0)"
+baseline_selection: "deepTauVsJets_iso_2>0.1 && deepTauVsJets_iso_3>0.1 && deepTauVsJets_iso_4>0.1 && iso_1<0.15 && deepTauVsMu_vloose_2>0.5 && deepTauVsEle_vvloose_2>0.5 && deepTauVsMu_vloose_3>0.5 && deepTauVsEle_vvloose_3>0.5 && deepTauVsMu_vloose_4>0.5 && deepTauVsEle_vvloose_4>0.5 && ((pt_1>23 && trg_singlemuon_1==1) || (pt_2>40 && pt_3>40 && trg_doubletau_23==1) || (pt_2>40 && pt_4>40 && trg_doubletau_24==1) || (pt_3>40 && pt_4>40 && trg_doubletau_34==1)) && (((isTau==1) && ((pt_1>23 && trg_singlemuon_1==1)))==0)"
 pass_selection: "deepTauVsJets_loose_NUM"
 sideband_pass: "q_sum==0"
 alt_sideband_pass: "deepTauVsJets_loose_ALT"
@@ -217,7 +219,7 @@ years_and_lumi:
   "2018": 59740.0
 param_file: "/vols/cms/gu18/4tau_v3/CMSSW_10_2_19/src/UserCode/ICHiggsTauTau/Analysis/4tau/scripts/params_UL_YEAR.json"
 mc_weight: "wt"
-file_location: "/vols/cms/gu18/Offline/output/4tau/2301" 
+file_location: "/vols/cms/gu18/Offline/output/4tau/2004" 
 file_ext: "_mttt_YEAR.root"
 variables:
   - "tau_decay_mode_NUM"
@@ -226,6 +228,17 @@ variables:
   - "eta_NUM"
   - "q_NUM"
   - "trg_doubletau_leg_NUM"
+  - "fabs(trg_doubletau_leg_ALT)"
   - "q_sum"
-  - "deepTauVsJets_iso_ALT"
+  - "deepTauVsJets_loose_ALT"
   - "YEAR"
+normalize_in:
+  - "tau_number"
+  - "q_sum":
+    - - "0.0"
+    - - "2.0"
+      - "-2.0"
+      - "-4.0"
+      - "4.0"
+  - "deepTauVsJets_loose_2"
+  - "deepTauVsJets_loose_3"

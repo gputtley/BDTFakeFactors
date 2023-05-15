@@ -1,5 +1,5 @@
 from UserCode.BDTFakeFactors.Dataframe import Dataframe
-from UserCode.BDTFakeFactors.functions import PrintDatasetSummary, GetNonZeroMinimum
+from UserCode.BDTFakeFactors.functions import PrintDatasetSummary, GetNonZeroMinimum, ConvertTH1ToLambda, GetNonClosureLargestShift
 from UserCode.BDTFakeFactors.batch import CreateBatchJob,SubmitBatchJob
 from UserCode.BDTFakeFactors.plotting import FindRebinning, RebinHist, ReplaceName, DrawTitle, DrawDistributions
 from collections import OrderedDict
@@ -16,6 +16,7 @@ import ROOT
 import copy
 import yaml
 import random
+import gc
 from sklearn import metrics
 ROOT.gROOT.SetBatch(ROOT.kTRUE)
 ROOT.TGaxis.SetExponentOffset(-0.06, 0.01, "y");
@@ -26,6 +27,7 @@ parser.add_argument('--batch', help= 'Run job on the batch',  action='store_true
 parser.add_argument('--verbosity', help= 'Changes how much is printed', type=int, default=0)
 parser.add_argument('--no_plots', help= 'Do not run plotting',  action='store_true')
 parser.add_argument('--load_models', help= 'Load models in from pkl files',  action='store_true')
+parser.add_argument('--shift',help= 'Shift MC yields up and down by 10%', default='', choices=["","up","down"])
 args = parser.parse_args()
 
 ############ Import config ####################
@@ -42,7 +44,7 @@ if args.batch:
       cmd += " --{}".format(a)
     elif getattr(args, a) != False and getattr(args, a) != None:
       cmd += " --{}={}".format(a,getattr(args, a))
-  name = "subtraction_job_{}".format(data["channel"])
+  name = "subtraction_job{}_{}".format(args.shift,data["channel"])
   cmssw_base = os.getcwd().replace('src/UserCode/BDTFakeFactors','')
   CreateBatchJob("jobs/"+name+".sh",cmssw_base,[cmd])
   SubmitBatchJob("jobs/"+name+".sh")
@@ -65,13 +67,16 @@ def FindBinning(df,col,n_bins=20,ignore_quantile=0.01):
 
 ### Begin load and training loop ###
 
+if args.shift != "": args.shift = "_"+args.shift
+
+
 if not os.path.isdir("BDTs/{}".format(data["channel"])): os.system("mkdir BDTs/{}".format(data["channel"]))
 if not os.path.isdir("hyperparameters/{}".format(data["channel"])): os.system("mkdir hyperparameters/{}".format(data["channel"]))
-if not os.path.isdir("dataframes/{}/subtracted_pass".format(data["channel"])): os.system("mkdir dataframes/{}/subtracted_pass".format(data["channel"]))
-if not os.path.isdir("dataframes/{}/subtracted_fail".format(data["channel"])): os.system("mkdir dataframes/{}/subtracted_fail".format(data["channel"]))
+if not os.path.isdir("dataframes/{}/subtracted_pass{}".format(data["channel"],args.shift)): os.system("mkdir dataframes/{}/subtracted_pass{}".format(data["channel"],args.shift))
+if not os.path.isdir("dataframes/{}/subtracted_fail{}".format(data["channel"],args.shift)): os.system("mkdir dataframes/{}/subtracted_fail{}".format(data["channel"],args.shift))
 
-#for pf in ["pass","fail"]:
-for pf in ["pass"]:
+#for pf in ["pass"]:
+for pf in ["pass","fail"]:
 
   if not args.load_models:
 
@@ -94,6 +99,9 @@ for pf in ["pass"]:
     print "<< Running Training >>"
 
     mc_df.NormaliseWeightsInCategory("y", [0,1], column="weights")
+    if args.verbosity > 0:
+      print "MC dataframe"
+      print mc_df.dataframe
     X, y, wt = mc_df.SplitXyWts()
 
     xgb_model = xgb.XGBClassifier()
@@ -101,16 +109,16 @@ for pf in ["pass"]:
     xgb_model.fit(X, y, sample_weight=wt) 
 
     scores = xgb_model.predict_proba(X)[:,1]
-    print metrics.roc_auc_score(y,scores)
+    print "BDT ROC Score:", metrics.roc_auc_score(y,scores)
 
-    pkl.dump(xgb_model,open("BDTs/{}/subtraction_{}.pkl".format(data["channel"],pf), "wb"))
+    pkl.dump(xgb_model,open("BDTs/{}/subtraction_{}{}.pkl".format(data["channel"],pf,args.shift), "wb"))
     del temp_df, X, y, wt
 
   else:
 
     print "<< Loading Model >>"
 
-    xgb_model = pkl.load(open("BDTs/{}/subtraction_{}.pkl".format(data["channel"],pf), "rb"))
+    xgb_model = pkl.load(open("BDTs/{}/subtraction_{}{}.pkl".format(data["channel"],pf,args.shift), "rb"))
 
 
   ### finding events for removal ###
@@ -130,9 +138,16 @@ for pf in ["pass"]:
     mc_df.loc[:,"scores"] = xgb_model.predict_proba(X_mc_df)[:,1]
 
     nbins = max(min(int(np.floor(mc_df.loc[:,"weights"].sum()/2)),100),5) 
-    mc_hist, mc_bins = np.histogram(np.array(mc_df.loc[:,"scores"]),bins=nbins,weights=np.array(mc_df.loc[:,"weights"]),range=(0,1))
 
-    # check there are more mc_stats in the bins than in data, if not do some merging - do this tomorrow
+    shift_val = 1.1
+    if args.shift == "": 
+      shift = 1.0
+    elif args.shift == "_up":
+      shift = shift_val
+    elif args.shift == "_down":
+      shift = 2.0 - shift_val
+
+    mc_hist, mc_bins = np.histogram(np.array(mc_df.loc[:,"scores"]),bins=nbins,weights=np.array(shift*mc_df.loc[:,"weights"]),range=(0,1))
 
     rm_indices = []
     for ind, val in enumerate(mc_hist):
@@ -156,7 +171,7 @@ for pf in ["pass"]:
           else:
             stuck_counter += 1 
           sample = slimmed_data_df.sample()
-        print mc_bins[ind], mc_bins[ind+1], val, removed_weights, len(slimmed_data_df)
+        if args.verbosity>0: print mc_bins[ind], mc_bins[ind+1], val, removed_weights, len(slimmed_data_df)
  
     ### Remove events ###
     indexes_to_keep = set(range(data_df.shape[0])) - set(rm_indices)
@@ -164,12 +179,16 @@ for pf in ["pass"]:
     subtract_df = Dataframe()
     subtract_df.dataframe = data_df.take(list(indexes_to_keep))
     subtract_df.dataframe.drop(["scores"],axis=1,inplace=True)
-    print "Subtracted Sum", subtract_df.dataframe.loc[:,"weights"].sum()
-    print "Data Sum - MC Sum", data_df.loc[:,"weights"].sum() - mc_df.loc[:,"weights"].sum()
+    if args.verbosity>0:
+      print "Subtracted Sum", subtract_df.dataframe.loc[:,"weights"].sum()
+      print "Data Sum - MC Sum", data_df.loc[:,"weights"].sum() - mc_df.loc[:,"weights"].sum()
     ### write dataframes ###
-    subtract_df.dataframe.to_pickle("dataframes/{}/subtracted_{}/subtracted_{}".format(data["channel"],pf,filename.replace("data_","")))
+    subtract_df.dataframe.to_pickle("dataframes/{}/subtracted_{}{}/subtracted_{}".format(data["channel"],pf,args.shift,filename.replace("data_","")))
 
-  ### Plotting ###
+  if args.shift != "": continue
+
+  ### Plotting and non closure ###
+
 
   ind = 0
   fdir = "dataframes/{}/subtracted_{}".format(data["channel"],pf)
@@ -181,6 +200,9 @@ for pf in ["pass"]:
     else:
       subtract_df.dataframe = pd.concat([temp_df,subtract_df.dataframe], ignore_index=True, sort=False)
     ind += 1
+  if args.verbosity>0:
+    print "Subtracted dataset"
+    print subtract_df.dataframe
 
   ind = 0 
   fdir = "dataframes/{}/mc_other_{}".format(data["channel"],pf)
@@ -210,34 +232,120 @@ for pf in ["pass"]:
   neg_weight_df.dataframe  = pd.concat([neg_weight_df.dataframe,mc_df.dataframe], ignore_index=True, sort=False)
   ttree_neg_weight = neg_weight_df.WriteToRoot(None,key='ntuple',return_tree=True)
 
+  ### non closure uncert ###
+
+  l_dump = OrderedDict()
+  for col in subtract_df.dataframe.columns:
+  
+    if "weights" in col: continue
+  
+    n_bins = 100
+    ignore_quantile = 0.001
+  
+    var_name = col.replace("(","_").replace("*","_times_").replace("/","_divide_").replace(")","")
+  
+    concat_test = pd.concat([subtract_df.dataframe,neg_weight_df.dataframe],axis=0,ignore_index=True)
+    if len(concat_test.loc[:,col].unique()) > n_bins: # continuous
+      bins = list(np.linspace(concat_test.loc[:,col].quantile(ignore_quantile),concat_test.loc[:,col].quantile(1-ignore_quantile),n_bins))
+      bins[0] = concat_test.loc[:,col].min()
+      bins[-1] = concat_test.loc[:,col].max()
+    else:
+      bins = sorted(concat_test.loc[:,col].unique())
+      bins.append(2*bins[-1]-bins[-2])
+    del concat_test
+    gc.collect()
+  
+    bins = array('f', map(float,bins))
+  
+    hout = ROOT.TH1D('hout','',len(bins)-1, bins)
+    for i in range(0,hout.GetNbinsX()+2): hout.SetBinError(i,0)
+    hout.SetDirectory(ROOT.gROOT)
+  
+    hist_fail = hout.Clone()
+    hist_fail.SetName('hist_fail')
+    hist_fail.SetDirectory(ROOT.gROOT)
+    ttree_subtract.Draw('%(var_name)s>>hist_fail' % vars(),'weights*(1)','goff')
+    hist_fail = ttree_subtract.GetHistogram()
+  
+    hist_pass = hout.Clone()
+    hist_pass.SetName('hist_pass')
+    hist_pass.SetDirectory(ROOT.gROOT)
+    ttree_neg_weight.Draw('%(var_name)s>>hist_pass' % vars(),'weights*(1)','goff')
+    hist_pass = ttree_neg_weight.GetHistogram()
+  
+    if len(bins) > 10:
+      binning = FindRebinning(hist_fail,BinThreshold=100,BinUncertFraction=0.05)
+      hist_pass = RebinHist(hist_pass,binning)
+      binning = FindRebinning(hist_pass,BinThreshold=100,BinUncertFraction=0.05)
+      hist_pass = RebinHist(hist_pass,binning)
+      hist_fail = RebinHist(hist_fail,binning)
+ 
+    #neg_hist_fail = hist_fail.Clone()
+    #neg_hist_fail.Scale(-1)
+    #hist_pass.Add(neg_hist_fail.Clone())
+    #hist_pass.Divide(hist_fail.Clone())
+    #for i in range(0,hist_pass.GetNbinsX()+1): hist_pass.SetBinContent(i,abs(hist_pass.GetBinContent(i)))
+    hist_pass.Divide(hist_fail)
+    for i in range(0,hist_pass.GetNbinsX()+1):
+      if hist_pass.GetBinContent(i) == 0.0: continue
+      content = max(hist_pass.GetBinContent(i),1.0/hist_pass.GetBinContent(i))
+      error = hist_pass.GetBinError(i)
+      #val = (content-1)**2 - error**2
+      #if val > 0:
+      #  hist_pass.SetBinContent(i,(val**0.5))
+      #else:
+      #  hist_pass.SetBinContent(i,0.0)
+      hist_pass.SetBinContent(i,content-1) 
+    hist_pass.Print("all") 
+    l_dump[col] = ConvertTH1ToLambda(hist_pass)
+ 
+  json_name = 'BDTs/subtraction_non_closure_uncertainties_{}_{}.json'.format(pf,data["channel"]) 
+  with open(json_name, 'w') as outfile: json.dump(l_dump, outfile, indent=2)
+
+
+  ### plotting ###
+
+  tmp_df = GetNonClosureLargestShift(subtract_df.dataframe.drop(["weights"],axis=1),json_name,subtract_df.dataframe.loc[:,"weights"])
+  subtract_df.dataframe.loc[:,"uncerts_up"] = tmp_df.loc[:,"up"]
+  subtract_df.dataframe.loc[:,"uncerts_down"] = tmp_df.loc[:,"down"]
+  ttree_subtract = subtract_df.WriteToRoot(None,key='ntuple',return_tree=True)
 
   # loop through variables
   if not args.no_plots:
     for var_ind, var_name in enumerate(subtract_df.dataframe.columns):
-      if var_name == "weights": continue
+      if var_name == "weights" or "uncerts_" in var_name: continue
 
       bins = FindBinning(subtract_df.dataframe,var_name,n_bins=20,ignore_quantile=0.01)
       c_clos = ROOT.TCanvas('c','c',600,600)
-
       hout = ROOT.TH1D('hout','',len(bins)-1, bins)
+      hout.SetDirectory(ROOT.gROOT)
       for i in range(0,hout.GetNbinsX()+2): hout.SetBinError(i,0)
       hist1 = hout.Clone()
-      hist1.SetName('hist1')
+      hist1.SetName('hist1_'+var_name)
+      hist1_up = hout.Clone()
+      hist1_up.SetName('hist1_up_'+var_name)
       hist2 = hout.Clone()
-      hist2.SetName('hist2')
+      hist2.SetName('hist2_'+var_name)
       hist3 = hout.Clone()
-      hist3.SetName('hist3')
+      hist3.SetName('hist3_'+var_name)
 
       hist1.SetDirectory(ROOT.gROOT)
-      ttree_subtract.Draw('%(var_name)s>>hist1' % vars(),'weights*(1)','goff')
+      ttree_subtract.Draw('%(var_name)s>>hist1_%(var_name)s' % vars(),'weights*(1)','goff')
       hist1 = ttree_subtract.GetHistogram()
 
+      hist1_up.SetDirectory(ROOT.gROOT)
+      ttree_subtract.Draw('%(var_name)s>>hist1_up_%(var_name)s' % vars(),'uncerts_up*(1)','goff')
+      hist1_up = ttree_subtract.GetHistogram()
+      
+      for i in range(0,hist1.GetNbinsX()+1):
+        hist1.SetBinError(i,(hist1.GetBinError(i)**2 + (hist1_up.GetBinContent(i)-hist1.GetBinContent(i))**2)**0.5)
+
       hist2.SetDirectory(ROOT.gROOT)
-      ttree_neg_weight.Draw('%(var_name)s>>hist2' % vars(),'weights*(1)','goff')
+      ttree_neg_weight.Draw('%(var_name)s>>hist2_%(var_name)s' % vars(),'weights*(1)','goff')
       hist2 = ttree_neg_weight.GetHistogram()
 
       hist3.SetDirectory(ROOT.gROOT)
-      ttree_nom.Draw('%(var_name)s>>hist3' % vars(),'weights*(1)','goff')
+      ttree_nom.Draw('%(var_name)s>>hist3_%(var_name)s' % vars(),'weights*(1)','goff')
       hist3 = ttree_nom.GetHistogram()
 
       if subtract_df.dataframe.loc[:,var_name].nunique() > 10:
@@ -249,7 +357,7 @@ for pf in ["pass"]:
         hist1 = RebinHist(hist1,binning)
         hist2 = RebinHist(hist2,binning)
         hist3 = RebinHist(hist3,binning)
-   
+    
       # norm to bin width
       hist1.Scale(1.0,"width")
       hist2.Scale(1.0,"width")
@@ -395,4 +503,5 @@ for pf in ["pass"]:
       print "Created", clos_name
       c_clos.SaveAs(clos_name)
       c_clos.Close()
-      del c_clos
+      del c_clos, hist1, hist2, hist3, hout
+      gc.collect()

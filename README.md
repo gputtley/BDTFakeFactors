@@ -53,6 +53,8 @@ python scripts/do_subtraction.py --cfg="configs/mmtt.yaml"
 This similarly has batch and verbosity options. There are also options to load the subtraction models from the BDTs folder, where after running the BDT will be stored in a pickle file.
 This will create datasets named with subtracted.
 
+You can also use the shift option which takes in up or down to shift the amount of MC subtracted up or down by 10\%.
+
 ## Running reweights - simple
 
 To run the reweights simply you can run the following command.
@@ -65,6 +67,11 @@ Again this has batch and verbosity options.
 You can also split the plotting by years and test/train.
 If you have a hyperparameters or a model already trained you want to use, you can also load these in.
 The code produce reweight and closure plots and put these in the plots folder as well as saving the BDTs and hyperparameters used in the relevant folder.
+
+If you want to add the non closure uncertainties (next step) to the plot you can run the following command.
+```bash
+python scripts/do_reweighting.py --cfg="configs/mmtt.yaml" --load_models --add_uncerts="BDTs/ff_non_closure_uncertainties_mmtt.json"
+```
 
 ## Running reweights - hyperparameter scans
 
